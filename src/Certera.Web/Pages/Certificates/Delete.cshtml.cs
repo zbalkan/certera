@@ -1,23 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Certera.Data.Models;
+using Certera.Web.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Certera.Data;
-using Certera.Data.Models;
 using Microsoft.Extensions.Options;
-using Certera.Web.Options;
 
 namespace Certera.Web.Pages.Certificates
 {
     public class DeleteModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly Data.DataContext _context;
         private readonly IOptionsSnapshot<HttpServer> _httpServerOptions;
 
-        public DeleteModel(Certera.Data.DataContext context, IOptionsSnapshot<HttpServer> httpServerOptions)
+        public DeleteModel(Data.DataContext context, IOptionsSnapshot<HttpServer> httpServerOptions)
         {
             _context = context;
             _httpServerOptions = httpServerOptions;
@@ -25,6 +21,7 @@ namespace Certera.Web.Pages.Certificates
 
         [BindProperty]
         public AcmeCertificate AcmeCertificate { get; set; }
+
         [TempData]
         public string StatusMessage { get; set; }
 
@@ -40,11 +37,7 @@ namespace Certera.Web.Pages.Certificates
                 .Include(a => a.Key)
                 .FirstOrDefaultAsync(m => m.AcmeCertificateId == id);
 
-            if (AcmeCertificate == null)
-            {
-                return NotFound();
-            }
-            return Page();
+            return AcmeCertificate == null ? NotFound() : Page();
         }
 
         public async Task<IActionResult> OnPostAsync(long? id)

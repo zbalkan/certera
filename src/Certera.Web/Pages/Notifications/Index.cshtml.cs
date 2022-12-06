@@ -1,22 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Certera.Data;
-using Certera.Data.Models;
-using System.Security.Claims;
 
 namespace Certera.Web.Pages.Notifications
 {
     public class IndexModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly Data.DataContext _context;
 
-        public IndexModel(Certera.Data.DataContext context)
+        public IndexModel(Data.DataContext context)
         {
             _context = context;
         }
@@ -56,8 +52,7 @@ namespace Certera.Web.Pages.Notifications
 
             _context.Attach(NotificationSetting).State = EntityState.Modified;
 
-            var userId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-            NotificationSetting.ApplicationUserId = userId;
+            NotificationSetting.ApplicationUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
             try
             {
@@ -75,13 +70,10 @@ namespace Certera.Web.Pages.Notifications
                     throw;
                 }
             }
-            
+
             return RedirectToPage("./Index");
         }
 
-        private bool NotificationSettingExists(long id)
-        {
-            return _context.NotificationSettings.Any(e => e.NotificationSettingId == id);
-        }
+        private bool NotificationSettingExists(long id) => _context.NotificationSettings.Any(e => e.NotificationSettingId == id);
     }
 }

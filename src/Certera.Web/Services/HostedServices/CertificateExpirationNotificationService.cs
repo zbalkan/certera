@@ -1,4 +1,9 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Data.Models;
 using Certera.Data.Views;
 using Certera.Web.Options;
@@ -7,22 +12,17 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Services.HostedServices
 {
     public class CertificateExpirationNotificationService : IHostedService, IDisposable
     {
         private readonly IServiceProvider _services;
-        private readonly ILogger _logger;
-        private Timer _timer;
+        private readonly ILogger<CertificateExpirationNotificationService> _logger;
+        private Timer? _timer;
         private bool _running;
 
-        public CertificateExpirationNotificationService(IServiceProvider services, 
+        public CertificateExpirationNotificationService(IServiceProvider services,
             ILogger<CertificateExpirationNotificationService> logger)
         {
             _services = services;
@@ -33,9 +33,9 @@ namespace Certera.Web.Services.HostedServices
         {
             _logger.LogInformation("Certificate expiration notification service starting.");
 
-            _timer = new Timer(TimerIntervalCallback, null,
-                TimeSpan.FromMinutes(2) /* start */,
-                TimeSpan.FromMinutes(60) /* interval */);
+            _timer = new Timer(callback: TimerIntervalCallback, state: null,
+                dueTime: TimeSpan.FromMinutes(2) /* start */,
+                period: TimeSpan.FromMinutes(60) /* interval */);
 
             return Task.CompletedTask;
         }
@@ -58,74 +58,74 @@ namespace Certera.Web.Services.HostedServices
 
         private void RunNotificationCheck()
         {
-            using (var scope = _services.CreateScope())
+            using var scope = _services.CreateScope();
+            try
             {
-                try
+                var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
+                if (setupOptions == null || setupOptions?.Value.Finished == false)
                 {
-                    var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
-                    if (!setupOptions.Value.Finished)
+                    _logger.LogInformation("Skipping execution of certificate expiration notification service because setup is not complete.");
+                    return;
+                }
+
+                var notificationService = scope.ServiceProvider.GetService<NotificationService>();
+                if (notificationService == null)
+                {
+                    return;
+                }
+                var now = DateTime.Now;
+                var in30Days = now.AddDays(31).Date;
+
+                var dataContext = scope.ServiceProvider.GetService<DataContext>();
+                var certsExpiring = dataContext.GetTrackedCertificates()
+                    .Where(x => x.CertId != 0 && x.ValidTo <= in30Days && x.ValidTo >= now)
+                    .OrderBy(x => x.ValidTo)
+                    .ToList();
+
+                var expirationBuckets = GroupCertsIntoBuckets(now, certsExpiring);
+
+                var certIds = certsExpiring
+                    .Select(x => x.CertId)
+                    .Distinct()
+                    .ToArray();
+
+                var userNotifications = dataContext.UserNotifications
+                    .Where(x => certIds.Contains(x.DomainCertificateId))
+                    .GroupBy(x => GetNotificationEventKey(x.ApplicationUserId, x.DomainCertificateId, x.NotificationEvent))
+                    .ToDictionary(x => x.Key, x => x.First());
+
+                var notificationSettings = dataContext.NotificationSettings
+                    .Include(x => x.ApplicationUser)
+                    .Where(x =>
+                        x.ExpirationAlerts &&
+                        (x.ExpirationAlert1Day ||
+                         x.ExpirationAlert3Days ||
+                         x.ExpirationAlert7Days ||
+                         x.ExpirationAlert14Days ||
+                         x.ExpirationAlert30Days));
+
+                // Consider every single user and build the "view" for each user
+                foreach (var notificationSetting in notificationSettings)
+                {
+                    // What has been sent to that user and what needs to be sent? If we just came
+                    // across a certificate and it expires in 3 days, don't also send out
+                    // notifications for 7, 14 and 30 days.
+
+                    foreach (var bucket in expirationBuckets)
                     {
-                        _logger.LogInformation("Skipping execution of certificate expiration notification service because setup is not complete.");
-                        return;
-                    }
-
-                    var dataContext = scope.ServiceProvider.GetService<DataContext>();
-                    var notificationService = scope.ServiceProvider.GetService<NotificationService>();
-
-                    var now = DateTime.Now;
-                    var in30Days = now.AddDays(31).Date;
-
-                    var certsExpiring = dataContext.GetTrackedCertificates()
-                        .Where(x => x.CertId != 0 && x.ValidTo <= in30Days && x.ValidTo >= now)
-                        .OrderBy(x => x.ValidTo)
-                        .ToList();
-
-                    var expirationBuckets = GroupCertsIntoBuckets(now, certsExpiring);
-
-                    var certIds = certsExpiring
-                        .Select(x => x.CertId)
-                        .Distinct()
-                        .ToArray();
-
-                    var userNotifications = dataContext.UserNotifications
-                        .Where(x => certIds.Contains(x.DomainCertificateId))
-                        .ToList()
-                        .GroupBy(x => GetNotificationEventKey(x.ApplicationUserId, x.DomainCertificateId, x.NotificationEvent))
-                        .ToDictionary(x => x.Key, x => x.First());
-
-                    var notificationSettings = dataContext.NotificationSettings
-                        .Include(x => x.ApplicationUser)
-                        .Where(x =>
-                            x.ExpirationAlerts == true &&
-                            (x.ExpirationAlert1Day == true ||
-                             x.ExpirationAlert3Days == true ||
-                             x.ExpirationAlert7Days == true ||
-                             x.ExpirationAlert14Days == true ||
-                             x.ExpirationAlert30Days == true));
-
-                    // Consider every single user and build the "view" for each user
-                    foreach (var notificationSetting in notificationSettings)
-                    {
-                        // What has been sent to that user and what needs to be sent?
-                        // If we just came across a certificate and it expires in 3 days, don't also send out
-                        // notifications for 7, 14 and 30 days.
-
-                        foreach (var bucket in expirationBuckets)
+                        if (bucket.Value.Count > 0)
                         {
-                            if (bucket.Value.Any())
-                            {
-                                CheckAndSendNotification(notificationSetting, bucket, userNotifications, dataContext, notificationService);
+                            CheckAndSendNotification(notificationSetting, bucket, userNotifications, dataContext, notificationService);
 
-                                // User notified, save the record
-                                dataContext.SaveChanges();
-                            }
+                            // User notified, save the record
+                            dataContext.SaveChanges();
                         }
                     }
                 }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Certificate expiration notification job error.");
-                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Certificate expiration notification job error.");
             }
         }
 
@@ -135,7 +135,7 @@ namespace Certera.Web.Services.HostedServices
             DataContext dataContext,
             NotificationService notificationService)
         {
-            foreach(var expiringCert in bucket.Value)
+            foreach (var expiringCert in bucket.Value)
             {
                 try
                 {
@@ -151,13 +151,14 @@ namespace Certera.Web.Services.HostedServices
                         _logger.LogDebug($"Send key info: {key}.");
 
                         var sentNotifications = string.Join(Environment.NewLine, userNotifications.Keys);
-                        _logger.LogDebug($"Sent notifications:{Environment.NewLine}{sentNotifications}");
+                        _logger.LogDebug(message: $"Sent notifications:{Environment.NewLine}{sentNotifications}");
 
                         _logger.LogInformation($"Sending expiration notification email for {expiringCert.Subject}");
 
                         notificationService.SendExpirationNotification(notificationSetting, expiringCert);
 
-                        // Save the notification so the user isn't notified again for this certificate and this time period
+                        // Save the notification so the user isn't notified again for this
+                        // certificate and this time period
                         var userNotification = new UserNotification
                         {
                             ApplicationUser = notificationSetting.ApplicationUser,
@@ -186,13 +187,13 @@ namespace Certera.Web.Services.HostedServices
             var in14Days = now.AddDays(15).Date;
             var in30Days = now.AddDays(31).Date;
 
-            var dict = new Dictionary<NotificationEvent, List<TrackedCertificate>>
+            var dict = new Dictionary<NotificationEvent, List<TrackedCertificate>>(certsExpiring.Count)
             {
-                { NotificationEvent.ExpirationAlert1Day, new List<TrackedCertificate>() },
-                { NotificationEvent.ExpirationAlert3Days, new List<TrackedCertificate>() },
-                { NotificationEvent.ExpirationAlert7Days, new List<TrackedCertificate>() },
-                { NotificationEvent.ExpirationAlert14Days, new List<TrackedCertificate>() },
-                { NotificationEvent.ExpirationAlert30Days, new List<TrackedCertificate>() }
+                { NotificationEvent.ExpirationAlert1Day, new List<TrackedCertificate>(certsExpiring.Count) },
+                { NotificationEvent.ExpirationAlert3Days, new List<TrackedCertificate>(certsExpiring.Count) },
+                { NotificationEvent.ExpirationAlert7Days, new List<TrackedCertificate>(certsExpiring.Count) },
+                { NotificationEvent.ExpirationAlert14Days, new List<TrackedCertificate>(certsExpiring.Count) },
+                { NotificationEvent.ExpirationAlert30Days, new List<TrackedCertificate>(certsExpiring.Count) }
             };
 
             foreach (var cert in certsExpiring)
@@ -222,16 +223,14 @@ namespace Certera.Web.Services.HostedServices
             return dict;
         }
 
-        private static string GetNotificationEventKey(long userId, long certId, NotificationEvent notificationEvent)
-        {
-            return $"{userId}:{certId}:{notificationEvent}";
-        }
+        private static string GetNotificationEventKey(long userId, long certId, NotificationEvent notificationEvent) => $"{userId}:{certId}:{notificationEvent}";
 
         private static bool ShouldSend(NotificationSetting notificationSetting, NotificationEvent notificationEvent)
         {
-            return (bool)notificationSetting.GetType()
-                            .GetProperty(notificationEvent.ToString())
+            var val = notificationSetting.GetType()
+                            .GetProperty(notificationEvent.ToString())?
                             .GetValue(notificationSetting);
+            return val is not null && (bool)val;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -244,6 +243,7 @@ namespace Certera.Web.Services.HostedServices
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -261,10 +261,8 @@ namespace Certera.Web.Services.HostedServices
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "No unmanaged resources")]
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
+        public void Dispose() => Dispose(true);
+
+        #endregion IDisposable Support
     }
 }

@@ -1,13 +1,12 @@
-﻿using Certera.Core.Notifications;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Certera.Core.Notifications;
 using Certera.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Settings
 {
@@ -30,12 +29,16 @@ namespace Certera.Web.Pages.Settings
 
         [BindProperty]
         public string DnsScriptEnvironmentVariables { get; set; }
+
         [BindProperty]
         public string SetScript { get; set; }
+
         [BindProperty]
         public string SetScriptArguments { get; set; }
+
         [BindProperty]
         public string CleanupScript { get; set; }
+
         [BindProperty]
         public string CleanupScriptArguments { get; set; }
 

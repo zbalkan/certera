@@ -1,8 +1,8 @@
-﻿using Certera.Data;
+﻿using System.Threading.Tasks;
+using Certera.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Account.Manage
 {

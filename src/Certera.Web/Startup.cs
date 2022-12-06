@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Certera.Core.Notifications;
 using Certera.Data;
 using Certera.Web.AcmeProviders;
@@ -16,7 +18,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
@@ -24,8 +25,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System;
-using System.Collections.Generic;
 
 namespace Certera.Web
 {
@@ -49,9 +48,9 @@ namespace Certera.Web
             services.Configure<AllowedRemoteIPAddresses>(Configuration.GetSection("AllowedRemoteIPAddresses"));
             services.Configure<DnsServers>(Configuration.GetSection("DnsServers"));
 
-            services.Configure<CookiePolicyOptions>(options =>
-            {
-                // This lambda determines whether user consent for non-essential cookies is needed for a given request.
+            services.Configure<CookiePolicyOptions>(options => {
+                // This lambda determines whether user consent for non-essential cookies is needed
+                // for a given request.
                 options.CheckConsentNeeded = context => false;
             });
 
@@ -61,15 +60,14 @@ namespace Certera.Web
                         x => x.MigrationsAssembly(typeof(DataContext).Assembly.FullName))
                     .EnableSensitiveDataLogging(Environment.IsDevelopment()));
 
-            services.AddIdentity<ApplicationUser, Role>(options =>
-                {
-                    options.Password.RequireDigit = false;
-                    options.Password.RequireLowercase = false;
-                    options.Password.RequireNonAlphanumeric = false;
-                    options.Password.RequireUppercase = false;
-                    options.Password.RequiredLength = 8;
-                    options.Password.RequiredUniqueChars = 1;
-                })
+            services.AddIdentity<ApplicationUser, Role>(options => {
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequiredLength = 8;
+                options.Password.RequiredUniqueChars = 1;
+            })
                 .AddRoles<Role>()
                 .AddEntityFrameworkStores<DataContext>()
                 .AddDefaultTokenProviders();
@@ -96,8 +94,7 @@ namespace Certera.Web
             services.AddHostedService<CertificateChangeNotificationService>();
             services.AddHostedService<CertificateExpirationNotificationService>();
 
-            services.Configure<RouteOptions>(options =>
-            {
+            services.Configure<RouteOptions>(options => {
                 options.LowercaseQueryStrings = false; // Setting to true modifies to pwd reset token
                 options.LowercaseUrls = true;
             });
@@ -106,8 +103,8 @@ namespace Certera.Web
             var httpServerOptions = services.BuildServiceProvider().GetService<IOptions<HttpServer>>()?.Value;
 #pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
 
-            // Only configure the allowed hosts after setup has completed.
-            // If this is being setup on VPS/Cloud, a hostname won't be known until after setup.
+            // Only configure the allowed hosts after setup has completed. If this is being setup on
+            // VPS/Cloud, a hostname won't be known until after setup.
             if (!string.IsNullOrWhiteSpace(httpServerOptions?.SiteHostname))
             {
                 var allowedHosts = new List<string>
@@ -116,14 +113,10 @@ namespace Certera.Web
                     httpServerOptions.SiteHostname
                 };
 
-                services.Configure<HostFilteringOptions>(options =>
-                {
-                    options.AllowedHosts = allowedHosts;
-                });
+                services.Configure<HostFilteringOptions>(options => options.AllowedHosts = allowedHosts);
             }
 
-            services.Configure<AntiforgeryOptions>(options =>
-            {
+            services.Configure<AntiforgeryOptions>(options => {
                 options.Cookie = new CookieBuilder
                 {
                     HttpOnly = true,
@@ -147,9 +140,7 @@ namespace Certera.Web
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
             services.AddMvc()
-                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
-                .AddRazorPagesOptions(options =>
-                {
+                .AddRazorPagesOptions(options => {
                     options.Conventions.AuthorizeFolder("/Account/Manage");
                     options.Conventions.AuthorizePage("/Account/Logout");
 
@@ -162,13 +153,9 @@ namespace Certera.Web
                     options.Conventions.AuthorizeFolder("/Tracking");
                 });
 
-            services.AddHsts(options =>
-            {
-                options.MaxAge = TimeSpan.FromDays(365);
-            });
+            services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
 
-            services.ConfigureApplicationCookie(options =>
-            {
+            services.ConfigureApplicationCookie(options => {
                 options.Cookie = new CookieBuilder
                 {
                     HttpOnly = true,
@@ -194,7 +181,8 @@ namespace Certera.Web
             else
             {
                 app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                // The default HSTS value is 30 days. You may want to change this for production
+                // scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
             app.UseStatusCodePagesWithRedirects("/errors/{0}");
@@ -211,21 +199,21 @@ namespace Certera.Web
                 }
             }
 
-            // The built-in UseHttpsRedirection does a few things we don't want to do. 
+            // The built-in UseHttpsRedirection does a few things we don't want to do.
             // It will do 5001 for dev, which sometimes we don't want
-            // and it will do it for all requests, including the .well-known. 
+            // and it will do it for all requests, including the .well-known.
             //app.UseHttpsRedirection();
 
-            // It's best to set up how and when we want to do http --> https redirection
-            // Always redirect to https except when serving the ACME challenge and the API test endpoint to restart the server
+            // It's best to set up how and when we want to do http --> https redirection Always
+            // redirect to https except when serving the ACME challenge and the API test endpoint to
+            // restart the server
             var options = new RewriteOptions()
-                .Add(ctx =>
-                {
+                .Add(ctx => {
                     var req = ctx.HttpContext.Request;
 
                     if (!req.IsHttps &&
-                        (!req.Path.StartsWithSegments("/.well-known/acme-challenge") &&
-                        (!req.Path.StartsWithSegments("/api/test"))))
+                        !req.Path.StartsWithSegments("/.well-known/acme-challenge") &&
+                        (!req.Path.StartsWithSegments("/api/test")))
                     {
                         var redirectUrl = UriHelper.BuildAbsolute(
                             "https",
@@ -246,8 +234,8 @@ namespace Certera.Web
             app.UseStaticFiles();
             app.UseMiddleware<AllowedRemoteIPMiddleware>();
 
-            // This middleware is above auth to ensure we always redirect to setup
-            // on first launch and no other paths work until setup has been completed.
+            // This middleware is above auth to ensure we always redirect to setup on first launch
+            // and no other paths work until setup has been completed.
             app.UseMiddleware<SetupMiddleware>();
 
             app.UseRouting();
@@ -261,20 +249,16 @@ namespace Certera.Web
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
+            app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
                 endpoints.MapRazorPages();
                 endpoints.MapDefaultControllerRoute();
             });
 
-            // Handle setup steps where we can control writing to the response stream and
-            // giving instant feedback
+            // Handle setup steps where we can control writing to the response stream and giving
+            // instant feedback
             app.MapWhen(ctx => ctx.Request.Path.Equals("/setup/get-acme-cert"),
-                builder =>
-                {
-                    builder.UseMiddleware<SetupAcmeCertMiddleware>();
-                });
+                builder => builder.UseMiddleware<SetupAcmeCertMiddleware>());
         }
     }
 }

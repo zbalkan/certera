@@ -1,4 +1,6 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.AcmeProviders;
 using Certera.Web.Services;
@@ -9,8 +11,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Acme.Accounts
 {
@@ -34,10 +34,9 @@ namespace Certera.Web.Pages.Acme.Accounts
         }
 
         private static string _acmeTos;
-        public string TermsOfService
-        {
-            get
-            {
+
+        public string TermsOfService {
+            get {
                 return _acmeTos;
             }
         }
@@ -58,11 +57,10 @@ namespace Certera.Web.Pages.Acme.Accounts
         }
 
         [BindProperty]
-        public Data.Models.AcmeAccount AcmeAccount { get; set; }
+        public AcmeAccount AcmeAccount { get; set; }
 
         [TempData]
         public string StatusMessage { get; set; }
-
 
         public async Task<IActionResult> OnPostAsync()
         {
@@ -71,12 +69,12 @@ namespace Certera.Web.Pages.Acme.Accounts
                 return Page();
             }
 
-            bool deleteOnError = false;
+            var deleteOnError = false;
             if (AcmeAccount.KeyId < 0)
             {
                 var stg = AcmeAccount.IsAcmeStaging ? "-staging" : string.Empty;
                 var keyName = $"acme-account{stg}";
-                
+
                 var key = _keyGenerator.Generate(keyName, KeyAlgorithm.ES256);
                 if (key == null)
                 {
@@ -112,7 +110,7 @@ namespace Certera.Web.Pages.Acme.Accounts
                 ModelState.AddModelError(string.Empty, "Error creating ACME account");
                 return Page();
             }
-            
+
             StatusMessage = "Account created";
 
             return RedirectToPage("./Index");

@@ -1,11 +1,11 @@
-﻿using Certes;
+﻿using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Certera.Data;
 using Certera.Web.Authentication;
+using Certes;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Threading.Tasks;
-using System.Security.Claims;
 
 namespace Certera.Web.Controllers
 {
@@ -49,6 +49,7 @@ namespace Certera.Web.Controllers
                         ContentType = "text/plain",
                         StatusCode = 200
                     };
+
                 case "pem":
                 default:
                     return new ContentResult

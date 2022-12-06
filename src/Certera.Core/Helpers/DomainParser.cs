@@ -1,12 +1,11 @@
-﻿using System;
-using Nager.PublicSuffix;
+﻿using Nager.PublicSuffix;
 
 namespace Certera.Core.Helpers
 {
     public static class DomainParser
     {
-        private static WebTldRuleProvider _webTldRuleProvider;
-        private static Nager.PublicSuffix.DomainParser _domainParser;
+        private static readonly WebTldRuleProvider _webTldRuleProvider;
+        private static readonly Nager.PublicSuffix.DomainParser _domainParser;
 
         static DomainParser()
         {
@@ -15,7 +14,7 @@ namespace Certera.Core.Helpers
             _domainParser = new Nager.PublicSuffix.DomainParser(_webTldRuleProvider);
         }
 
-        public static string RegistrableDomain(string host)
+        public static string? RegistrableDomain(string host)
         {
             if (host == null)
             {
@@ -36,14 +35,8 @@ namespace Certera.Core.Helpers
             return null;
         }
 
-        public static string GetTld(string fullDomain)
-        {
-            return _domainParser.Parse(fullDomain).TLD;
-        }
+        public static string GetTld(string fullDomain) => _domainParser.Parse(fullDomain).TLD;
 
-        public static string Subdomain(string fullDomain)
-        {
-            return _domainParser.Parse(fullDomain).SubDomain;
-        }
+        public static string Subdomain(string fullDomain) => _domainParser.Parse(fullDomain).SubDomain;
     }
 }

@@ -15,9 +15,10 @@ namespace Certera.Web.Services
 
     public class BackgroundTaskQueue : IBackgroundTaskQueue, IDisposable
     {
-        private ConcurrentQueue<Func<CancellationToken, Task>> _workItems =
+        private readonly ConcurrentQueue<Func<CancellationToken, Task>> _workItems =
             new ConcurrentQueue<Func<CancellationToken, Task>>();
-        private SemaphoreSlim _signal = new SemaphoreSlim(0);
+
+        private readonly SemaphoreSlim _signal = new SemaphoreSlim(0);
 
         public void QueueBackgroundWorkItem(
             Func<CancellationToken, Task> workItem)
@@ -41,6 +42,7 @@ namespace Certera.Web.Services
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -57,10 +59,8 @@ namespace Certera.Web.Services
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "No unmanaged resources")]
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
+        public void Dispose() => Dispose(true);
+
+        #endregion IDisposable Support
     }
 }

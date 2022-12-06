@@ -1,4 +1,8 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.Extensions;
 using Certera.Web.Services;
@@ -6,28 +10,21 @@ using Certes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Keys
 {
     public class CreateModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly DataContext _context;
         private readonly KeyGenerator _keyGenerator;
 
-        public CreateModel(Certera.Data.DataContext context, KeyGenerator keyGenerator)
+        public CreateModel(DataContext context, KeyGenerator keyGenerator)
         {
             _context = context;
             _keyGenerator = keyGenerator;
         }
 
-        public IActionResult OnGet()
-        {
-            return Page();
-        }
+        public IActionResult OnGet() => Page();
 
         [BindProperty]
         public Key Key { get; set; }
@@ -42,7 +39,7 @@ namespace Certera.Web.Pages.Keys
                 return Page();
             }
 
-            IKey key = null;
+            IKey? key = null;
             // First check the plain text uploaded PEM encoded certificate (if any)
             if (!string.IsNullOrWhiteSpace(Key.RawData))
             {
@@ -82,7 +79,7 @@ namespace Certera.Web.Pages.Keys
                     {
                         Key.RawData = key.ToPem();
                     }
-                }                
+                }
             }
             var validKeyAlgValues = (int[])Enum.GetValues(typeof(KeyAlgorithm));
 

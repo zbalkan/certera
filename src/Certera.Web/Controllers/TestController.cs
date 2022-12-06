@@ -6,9 +6,6 @@ namespace Certera.Web.Controllers
     public class TestController : Controller
     {
         [HttpGet]
-        public IActionResult Get()
-        {
-            return Ok();
-        }
+        public IActionResult Get() => Ok();
     }
 }

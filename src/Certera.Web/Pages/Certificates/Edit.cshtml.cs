@@ -1,24 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Certera.Data.Models;
+using Certera.Web.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Certera.Data;
-using Certera.Data.Models;
 using Microsoft.Extensions.Options;
-using Certera.Web.Options;
 
 namespace Certera.Web.Pages.Certificates
 {
     public class EditModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly Data.DataContext _context;
         private readonly IOptionsSnapshot<HttpServer> _httpServerOptions;
 
-        public EditModel(Certera.Data.DataContext context, IOptionsSnapshot<HttpServer> httpServerOptions)
+        public EditModel(Data.DataContext context, IOptionsSnapshot<HttpServer> httpServerOptions)
         {
             _context = context;
             _httpServerOptions = httpServerOptions;
@@ -45,8 +43,7 @@ namespace Certera.Web.Pages.Certificates
             }
 
             ViewData["AcmeAccountId"] = new SelectList(
-                _context.AcmeAccounts.Select(x => new
-                {
+                _context.AcmeAccounts.Select(x => new {
                     Id = x.AcmeAccountId,
                     Name = x.AcmeContactEmail + (x.IsAcmeStaging ? " (staging)" : string.Empty)
                 })
@@ -110,9 +107,6 @@ namespace Certera.Web.Pages.Certificates
             return RedirectToPage("./Index");
         }
 
-        private bool AcmeCertificateExists(long id)
-        {
-            return _context.AcmeCertificates.Any(e => e.AcmeCertificateId == id);
-        }
+        private bool AcmeCertificateExists(long id) => _context.AcmeCertificates.Any(e => e.AcmeCertificateId == id);
     }
 }

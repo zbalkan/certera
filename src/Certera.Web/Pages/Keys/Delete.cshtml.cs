@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
+using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Certera.Data;
-using Certera.Data.Models;
 
 namespace Certera.Web.Pages.Keys
 {
     public class DeleteModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly Data.DataContext _context;
 
-        public DeleteModel(Certera.Data.DataContext context)
+        public DeleteModel(Data.DataContext context)
         {
             _context = context;
         }
@@ -34,11 +30,7 @@ namespace Certera.Web.Pages.Keys
 
             Key = await _context.Keys.FirstOrDefaultAsync(m => m.KeyId == id);
 
-            if (Key == null)
-            {
-                return NotFound();
-            }
-            return Page();
+            return Key == null ? NotFound() : Page();
         }
 
         public async Task<IActionResult> OnPostAsync(long? id)

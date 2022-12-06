@@ -1,12 +1,11 @@
-﻿using Certera.Data;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Setup
 {
@@ -15,7 +14,7 @@ namespace Certera.Web.Pages.Setup
         private readonly ILogger<IndexModel> _logger;
         private readonly DataContext _dataContext;
         private readonly UserManager<ApplicationUser> _userManager;
-        private IWritableOptions<Options.Setup> _setupOptions;
+        private readonly IWritableOptions<Options.Setup> _setupOptions;
 
         public IndexModel(ILogger<IndexModel> logger,
             DataContext dataContext,
@@ -69,12 +68,7 @@ namespace Certera.Web.Pages.Setup
                 ModelState.AddModelError(string.Empty, error.Description);
             }
 
-            if (!ModelState.IsValid)
-            {
-                return Page();
-            }
-
-            return RedirectToPage("./Acme");
+            return !ModelState.IsValid ? Page() : RedirectToPage("./Acme");
         }
     }
 

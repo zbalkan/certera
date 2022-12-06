@@ -1,9 +1,9 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Linq;
+using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.AcmeProviders;
 using Certes;
-using System;
-using System.Linq;
 
 namespace Certera.Web.Services
 {
@@ -18,18 +18,15 @@ namespace Certera.Web.Services
             _certesAcmeProvider = certesAcmeProvider;
         }
 
-        public Key Generate(string name, KeyAlgorithm keyAlgorithm = KeyAlgorithm.RS256, 
-            string description = null, string keyContents = null)
+        public Key Generate(string name, KeyAlgorithm keyAlgorithm = KeyAlgorithm.RS256,
+            string? description = null, string? keyContents = null)
         {
             if (_dataContext.Keys.Any(x => x.Name == name))
             {
-                name = $"{name}-{DateTime.Now.ToString("yyyyMMddHHmmss")}";
+                name = $"{name}-{DateTime.Now:yyyyMMddHHmmss}";
             }
 
-            if (keyContents == null)
-            {
-                keyContents = _certesAcmeProvider.NewKey(keyAlgorithm);
-            }
+            keyContents ??= _certesAcmeProvider.NewKey(keyAlgorithm);
 
             var key = new Key
             {

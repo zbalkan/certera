@@ -1,26 +1,28 @@
-﻿using Certera.Core.Helpers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using Certera.Core.Helpers;
 
 namespace Certera.Data.Models
 {
     public enum CertificateSource
     {
         /// <summary>
-        /// A domain that is tracked
+        ///     A domain that is tracked
         /// </summary>
         TrackedDomain,
+
         /// <summary>
-        /// User uploaded certificate
+        ///     User uploaded certificate
         /// </summary>
         Uploaded,
+
         /// <summary>
-        /// A certificate obtained via ACME
+        ///     A certificate obtained via ACME
         /// </summary>
         AcmeCertificate
     }
@@ -42,20 +44,17 @@ namespace Certera.Data.Models
 
         [DisplayName("Issuer")]
         public string IssuerName { get; set; }
+
         public CertificateSource CertificateSource { get; set; }
 
-        public X509Certificate2 Certificate
-        {
-            get
-            {
+        public X509Certificate2? Certificate {
+            get {
                 if (RawData == null)
                 {
                     return null;
                 }
 
-                var cert = new X509Certificate2(Convert.FromBase64String(RawData));
-
-                return cert;
+                return new X509Certificate2(Convert.FromBase64String(RawData));
             }
         }
 
@@ -84,10 +83,10 @@ namespace Certera.Data.Models
                 else
                 {
                     subject = cert.Subject;
-                }                
+                }
             }
             var domain = DomainParser.RegistrableDomain(subject);
-            var domainCert = new DomainCertificate
+            return new DomainCertificate
             {
                 DateCreated = DateTime.UtcNow,
                 Subject = subject,
@@ -100,18 +99,16 @@ namespace Certera.Data.Models
                 ValidNotAfter = cert.NotAfter,
                 ValidNotBefore = cert.NotBefore
             };
-            return domainCert;
         }
 
         public CertificateValidationResult IsValidForHostname(string uri)
         {
-            Uri uriObj;
             if (Certificate == null)
             {
                 return CertificateValidationResult.InvalidCertificate;
             }
 
-            if (string.IsNullOrWhiteSpace(uri) || !Uri.TryCreate(uri, UriKind.Absolute, out uriObj))
+            if (string.IsNullOrWhiteSpace(uri) || !Uri.TryCreate(uri, UriKind.Absolute, out var uriObj))
             {
                 return CertificateValidationResult.InvalidUri;
             }
@@ -121,8 +118,8 @@ namespace Certera.Data.Models
             var matched = false;
             foreach (var san in sans)
             {
-                // if host is google.com and wildcard is *.google.com
-                // if host is test.google.com and wilcard is *.google.com
+                // if host is google.com and wildcard is *.google.com if host is test.google.com and
+                // wilcard is *.google.com
                 var match = Regex.IsMatch(uriObj.Host, StrippedWildcard(san)) ||
                             Regex.IsMatch(uriObj.Host, WildcardToSubdomain(san));
                 if (match)
@@ -142,47 +139,30 @@ namespace Certera.Data.Models
                 return CertificateValidationResult.Expired;
             }
 
-            if (!Certificate.Verify())
-            {
-                return CertificateValidationResult.VerificationFailure;
-            }
-
-            return CertificateValidationResult.Valid;
+            return !Certificate.Verify() ? CertificateValidationResult.VerificationFailure : CertificateValidationResult.Valid;
         }
 
-        public bool ExpiresWithinDays(int days)
-        {
-            return DateTime.Now.Date >= ValidNotAfter.Subtract(TimeSpan.FromDays(days)).Date;
-        }
+        public bool ExpiresWithinDays(int days) => DateTime.Now.Date >= ValidNotAfter.Subtract(TimeSpan.FromDays(days)).Date;
 
-        private static string WildcardToSubdomain(string value)
-        {
-            return "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
-        }
+        private static string WildcardToSubdomain(string value) => "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
 
-        private static string StrippedWildcard(string value)
-        {
-            return "^" + Regex.Escape(value).Replace("\\*\\.", "") + "$";
-        }
+        private static string StrippedWildcard(string value) => "^" + Regex.Escape(value).Replace("\\*\\.", "") + "$";
 
         private static List<string> ParseSujectAlternativeName(X509Certificate2 cert)
         {
-            var result = new List<string>();
+            var result = new List<string>(10);
 
-            var subjectAlternativeName = cert.Extensions.Cast<X509Extension>()
-                                                .Where(n => n.Oid.Value == "2.5.29.17") // Subject Alternative Name
+            var subjectAlternativeName = cert.Extensions
+                                                .Where(n => n.Oid?.Value == "2.5.29.17") // Subject Alternative Name
                                                 .Select(n => new AsnEncodedData(n.Oid, n.RawData))
                                                 .Select(n => n.Format(true))
                                                 .FirstOrDefault();
 
             if (subjectAlternativeName != null)
             {
-                var alternativeNames = subjectAlternativeName.Split(new[] { "\r\n", "\r", "\n", "," }, StringSplitOptions.RemoveEmptyEntries);
-
-                foreach (var san in alternativeNames)
+                foreach (var san in subjectAlternativeName.Split(new[] { "\r\n", "\r", "\n", "," }, StringSplitOptions.RemoveEmptyEntries))
                 {
-                    // Windows uses DNS Name=<value>
-                    // Linux uses DNS:<value>
+                    // Windows uses DNS Name=<value> Linux uses DNS:<value>
                     var parts = san.Split(new char[] { '=', ':' }, StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length > 0 && !string.IsNullOrEmpty(parts[1]))
                     {

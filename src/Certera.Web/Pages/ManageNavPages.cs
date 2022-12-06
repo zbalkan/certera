@@ -29,7 +29,7 @@ namespace Certera.Web.Pages
 
         public static string SettingsNavClass(ViewContext viewContext) => PageNavClass(viewContext, Settings);
 
-        private static string PageNavClass(ViewContext viewContext, string page)
+        private static string? PageNavClass(ViewContext viewContext, string page)
         {
             var activePage = viewContext.ViewData["ActivePage"] as string
                 ?? System.IO.Path.GetFileNameWithoutExtension(viewContext.ActionDescriptor.DisplayName);

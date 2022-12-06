@@ -1,9 +1,9 @@
-﻿using Certera.Data;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Middleware
 {
@@ -72,44 +72,30 @@ namespace Certera.Web.Middleware
             await _next(httpContext);
         }
 
-        private bool IsSafeEndpoint(HttpContext httpContext)
-        {
-            return httpContext.Request.Path.StartsWithSegments("/.well-known") ||
+        private bool IsSafeEndpoint(HttpContext httpContext) => httpContext.Request.Path.StartsWithSegments("/.well-known") ||
                    httpContext.Request.Path.StartsWithSegments("/api/test");
-        }
 
         /// <summary>
-        /// This setup hook is available for startup to determine whether setup has finished or not.
-        /// It's a quick way to update the flag so that all of the checks don't need to happen on every request.
+        ///     This setup hook is available for startup to determine whether setup has finished or
+        ///     not. It's a quick way to update the flag so that all of the checks don't need to
+        ///     happen on every request.
         /// </summary>
-        public static bool SetupFinished(DataContext dataContext, HttpServer httpServerOptions)
-        {
-            return CompletedAccountStep(dataContext) &&
+        public static bool SetupFinished(DataContext dataContext, HttpServer httpServerOptions) => CompletedAccountStep(dataContext) &&
                 CompletedAcmeStep(dataContext) &&
                 CompletedServerSetup(dataContext, httpServerOptions) &&
                 CompletedCertificateStep(dataContext, httpServerOptions);
-        }
 
-        private static bool CompletedAccountStep(DataContext dataContext)
-        {
-            return dataContext.ApplicationUsers.Any();
-        }
+        private static bool CompletedAccountStep(DataContext dataContext) => dataContext.ApplicationUsers.Any();
 
-        private static bool CompletedAcmeStep(DataContext dataContext)
-        {
-            return dataContext.AcmeAccounts.Count() > 1 && dataContext.Keys.Any();
-        }
+        private static bool CompletedAcmeStep(DataContext dataContext) => dataContext.AcmeAccounts.Count() > 1 && dataContext.Keys.Any();
 
-        private static bool CompletedServerSetup(DataContext dataContext, HttpServer httpServerOptions)
-        {
-            return !string.IsNullOrWhiteSpace(httpServerOptions.SiteHostname) && dataContext.AcmeCertificates.Any();
-        }
+        private static bool CompletedServerSetup(DataContext dataContext, HttpServer httpServerOptions) => !string.IsNullOrWhiteSpace(httpServerOptions.SiteHostname) && dataContext.AcmeCertificates.Any();
 
         private static bool CompletedCertificateStep(DataContext dataContext, HttpServer httpServerOptions)
         {
             var cert = dataContext.GetAcmeCertificate(httpServerOptions.SiteHostname);
 
-            if (cert == null || cert.LatestValidAcmeOrder == null || !cert.LatestValidAcmeOrder.Completed)
+            if (cert == null || cert.LatestValidAcmeOrder?.Completed != true)
             {
                 return false;
             }

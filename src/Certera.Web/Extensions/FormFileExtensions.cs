@@ -1,18 +1,15 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace Certera.Web.Extensions
 {
     public static class FormFileExtensions
     {
-        public static bool IsNullOrEmpty(this IFormFile file)
-        {
-            return file == null || file.Length == 0;
-        }
+        public static bool IsNullOrEmpty(this IFormFile file) => file == null || file.Length == 0;
 
-        public static async Task<string> ReadAsStringAsync(this IFormFile file)
+        public static async Task<string?> ReadAsStringAsync(this IFormFile file)
         {
             if (file.IsNullOrEmpty())
             {
@@ -29,19 +26,16 @@ namespace Certera.Web.Extensions
             return result.ToString();
         }
 
-        public static async Task<byte[]> ReadAsBytesAsync(this IFormFile file)
+        public static async Task<byte[]?> ReadAsBytesAsync(this IFormFile file)
         {
             if (file.IsNullOrEmpty())
             {
                 return null;
             }
 
-            using (var ms = new MemoryStream())
-            {
-                await file.CopyToAsync(ms);
-                var fileBytes = ms.ToArray();
-                return fileBytes;
-            }
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            return ms.ToArray();
         }
     }
 }

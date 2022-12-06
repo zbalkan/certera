@@ -1,4 +1,9 @@
-﻿using Certera.Core.Helpers;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
+using Certera.Core.Helpers;
 using Certera.Data.Models;
 using Certera.Web.Services;
 using Certera.Web.Services.Dns;
@@ -6,18 +11,13 @@ using Certes;
 using Certes.Acme;
 using Certes.Acme.Resource;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 
 namespace Certera.Web.AcmeProviders
 {
     public class CertesAcmeProvider
     {
         private AcmeContext _acmeContext;
-        private Data.Models.AcmeCertificate _acmeCertificate;
+        private AcmeCertificate _acmeCertificate;
         private IOrderContext _order;
         private List<AuthChallengeContainer> _authChallengeContainers;
         private AcmeOrder _acmeOrder;
@@ -34,7 +34,7 @@ namespace Certera.Web.AcmeProviders
         {
             try
             {
-                IKey accountKey = KeyFactory.FromPem(key);
+                var accountKey = KeyFactory.FromPem(key);
 
                 var acmeContext = new AcmeContext(staging
                     ? WellKnownServers.LetsEncryptStagingV2
@@ -47,10 +47,7 @@ namespace Certera.Web.AcmeProviders
             return false;
         }
 
-        public string NewKey(KeyAlgorithm keyAlgorithm)
-        {
-            return KeyFactory.NewKey(keyAlgorithm).ToPem();
-        }
+        public string NewKey(KeyAlgorithm keyAlgorithm) => KeyFactory.NewKey(keyAlgorithm).ToPem();
 
         public async Task CreateAccount(string email, string key, bool staging)
         {
@@ -71,15 +68,14 @@ namespace Certera.Web.AcmeProviders
 
             await acmeContext.NewAccount(email, true);
 
-            var keyPem = acmeContext.AccountKey.ToPem();
-            return keyPem;
+            return acmeContext.AccountKey.ToPem();
         }
 
-        public void Initialize(Data.Models.AcmeCertificate acmeCert)
+        public void Initialize(AcmeCertificate acmeCert)
         {
             _acmeCertificate = acmeCert;
 
-            IKey accountKey = KeyFactory.FromPem(acmeCert.AcmeAccount.Key.RawData);
+            var accountKey = KeyFactory.FromPem(acmeCert.AcmeAccount.Key.RawData);
 
             _acmeContext = new AcmeContext(acmeCert.AcmeAccount.IsAcmeStaging
                 ? WellKnownServers.LetsEncryptStagingV2
@@ -119,8 +115,8 @@ namespace Certera.Web.AcmeProviders
                 // Get authorizations for the new order which we'll then place
                 var authz = await _order.Authorizations();
 
-                // Track all auth requests to the corresponding validation and 
-                // subsequent completion and certificate response
+                // Track all auth requests to the corresponding validation and subsequent completion
+                // and certificate response
                 _authChallengeContainers = new List<AuthChallengeContainer>();
 
                 foreach (var auth in authz)
@@ -187,7 +183,7 @@ namespace Certera.Web.AcmeProviders
 
             foreach (var req in _acmeOrder.AcmeRequests)
             {
-                string transformedArgs = GenerateScriptArgs(dnsSettings.DnsSetupScriptArguments, req);
+                var transformedArgs = GenerateScriptArgs(dnsSettings.DnsSetupScriptArguments, req);
 
                 var exitCode = RunProcess(dnsSettings.DnsSetupScript,
                     transformedArgs,
@@ -204,14 +200,12 @@ namespace Certera.Web.AcmeProviders
             var registrableDomain = DomainParser.RegistrableDomain(req.Domain);
             var subdomain = "_acme-challenge" + "." + DomainParser.Subdomain(req.Domain);
 
-            var transformedArgs = scriptArgs?
+            return scriptArgs?
                .Replace("{{FullRecord}}", fullRecord)
                .Replace("{{Subject}}", req.Domain)
                .Replace("{{Domain}}", registrableDomain)
                .Replace("{{Record}}", subdomain)
                .Replace("{{Value}}", req.DnsTxtValue);
-
-            return transformedArgs;
         }
 
         public async Task<bool> ValidateDnsRecords()
@@ -234,7 +228,7 @@ namespace Certera.Web.AcmeProviders
 
             foreach (var req in _acmeOrder.AcmeRequests)
             {
-                string transformedArgs = GenerateScriptArgs(dnsSettings.DnsCleanupScriptArguments, req);
+                var transformedArgs = GenerateScriptArgs(dnsSettings.DnsCleanupScriptArguments, req);
 
                 var exitCode = RunProcess(dnsSettings.DnsCleanupScript,
                     transformedArgs,
@@ -343,7 +337,6 @@ namespace Certera.Web.AcmeProviders
                 }
 
                 await Task.Delay(5000);
-
             } while (attempts-- > 0);
 
             // All authorizations have completed, save the results
@@ -352,8 +345,8 @@ namespace Certera.Web.AcmeProviders
                 cc.Authorization = cc.AuthorizationTask.Result;
             }
 
-            // At this point, they're all complete and need to see which are valid/invalid
-            // and obtain the cert if possible.
+            // At this point, they're all complete and need to see which are valid/invalid and
+            // obtain the cert if possible.
             try
             {
                 var invalidResp = _authChallengeContainers
@@ -410,10 +403,7 @@ namespace Certera.Web.AcmeProviders
             return _acmeOrder;
         }
 
-        public async Task Revoke(byte[] cert, RevocationReason reason)
-        {
-            await _acmeContext.RevokeCertificate(cert, reason, null);
-        }
+        public async Task Revoke(byte[] cert, RevocationReason reason) => await _acmeContext.RevokeCertificate(cert, reason, null);
     }
 
     public class AuthChallengeContainer

@@ -1,22 +1,22 @@
-﻿using Certera.Core.Extensions;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Certera.Core.Extensions;
 using Certera.Data;
 using Certera.Web.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Services.HostedServices
 {
     public class DomainScanIntervalService : IHostedService, IDisposable
     {
         private readonly IServiceProvider _services;
-        private readonly ILogger _logger;
-        private Timer _timer;
+        private readonly ILogger<DomainScanIntervalService> _logger;
+        private Timer? _timer;
         private bool _running;
 
         public DomainScanIntervalService(IServiceProvider services, ILogger<DomainScanIntervalService> logger)
@@ -29,9 +29,7 @@ namespace Certera.Web.Services.HostedServices
         {
             _logger.LogInformation("Domain scanning service starting.");
 
-            _timer = new Timer(TimerIntervalCallback, null,
-                TimeSpan.FromMinutes(1) /* start */,
-                TimeSpan.FromMinutes(60) /* interval */);
+            _timer = new Timer(callback: TimerIntervalCallback, state: null, dueTime: TimeSpan.FromMinutes(1), period: TimeSpan.FromMinutes(60));
 
             return Task.CompletedTask;
         }
@@ -54,45 +52,43 @@ namespace Certera.Web.Services.HostedServices
 
         private void RunDomainScan()
         {
-            using (var scope = _services.CreateScope())
+            using var scope = _services.CreateScope();
+            try
             {
-                try
+                var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
+                if (setupOptions?.Value.Finished == false)
                 {
-                    var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
-                    if (!setupOptions.Value.Finished)
-                    {
-                        _logger.LogInformation("Skipping execution of domain scan service because setup is not complete.");
-                        return;
-                    }
-
-                    var domainScanSvc = scope.ServiceProvider.GetService<DomainScanService>();
-                    var dataContext = scope.ServiceProvider.GetService<DataContext>();
-
-                    var fourHoursAgo = DateTime.UtcNow.AddHours(-4);
-                    var domainsNeedingScan = dataContext.GetDomainsNeedingScan(fourHoursAgo);
-
-                    if (domainsNeedingScan.Count == 0)
-                    {
-                        _logger.LogInformation("No domains needing scan");
-                        return;
-                    }
-
-                    _logger.LogInformation($"{domainsNeedingScan.Count} domains to scan");
-
-                    var batches = domainsNeedingScan.Batch(4);
-                    foreach (var batch in batches)
-                    {
-                        batch.AsParallel().ForAll(domain =>
-                        {
-                            domainScanSvc.Scan(domain);
-                        });
-                    }
-                    dataContext.SaveChanges();
+                    _logger.LogInformation("Skipping execution of domain scan service because setup is not complete.");
+                    return;
                 }
-                catch (Exception e)
+
+                var domainScanSvc = scope.ServiceProvider.GetService<DomainScanService>();
+                var dataContext = scope.ServiceProvider.GetService<DataContext>();
+                if (dataContext == null)
                 {
-                    _logger.LogError(e, "Domain scanning job error.");
+                    throw new AggregateException("DataContext service is null.");
                 }
+
+                var fourHoursAgo = DateTime.UtcNow.AddHours(-4);
+                var domainsNeedingScan = dataContext.GetDomainsNeedingScan(fourHoursAgo);
+
+                if (domainsNeedingScan.Count == 0)
+                {
+                    _logger.LogInformation("No domains needing scan");
+                    return;
+                }
+
+                _logger.LogInformation($"{domainsNeedingScan.Count} domains to scan");
+
+                foreach (var batch in domainsNeedingScan.Batch(4))
+                {
+                    batch.AsParallel().ForAll(domain => domainScanSvc.Scan(domain));
+                }
+                dataContext.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Domain scanning job error.");
             }
         }
 
@@ -106,6 +102,7 @@ namespace Certera.Web.Services.HostedServices
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -123,10 +120,8 @@ namespace Certera.Web.Services.HostedServices
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "No unmanaged resources")]
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
+        public void Dispose() => Dispose(true);
+
+        #endregion IDisposable Support
     }
 }

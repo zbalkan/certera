@@ -1,16 +1,15 @@
-﻿using Org.BouncyCastle.Asn1;
+﻿using System;
+using System.Collections;
+using System.Diagnostics;
+using System.Net;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Ocsp;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Ocsp;
 using Org.BouncyCastle.X509;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Net;
-using System.Security.Cryptography.X509Certificates;
 using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
 using X509Extension = Org.BouncyCastle.Asn1.X509.X509Extension;
 
@@ -31,18 +30,15 @@ namespace Certera.Core.Helpers
         {
             var issuer = GetIssuerCertificate(certificate);
 
-            return GetOcspStatus(certificate, issuer);
+            return GetOcspStatusAsync(certificate, issuer).Result;
         }
 
-        private OcspStatus GetOcspStatus(X509Certificate2 cert, X509Certificate2 cacert)
-        {
-            return GetOcspStatus(ConvertToBCX509Certificate(cert), ConvertToBCX509Certificate(cacert));
-        }
+        private Task<OcspStatus> GetOcspStatusAsync(X509Certificate2 cert, X509Certificate2 cacert) => GetOcspStatusAsync(ConvertToBCX509Certificate(cert), ConvertToBCX509Certificate(cacert));
 
-        private OcspStatus GetOcspStatus(X509Certificate cert, X509Certificate cacert)
+        private async Task<OcspStatus> GetOcspStatusAsync(X509Certificate cert, X509Certificate cacert)
         {
             var urls = GetAuthorityInformationAccessOcspUrl(cert);
-            if (urls.Count == 0)
+            if (urls == null || urls.Count == 0)
             {
                 throw new Exception("No OCSP URL found in certificate.");
             }
@@ -50,73 +46,88 @@ namespace Certera.Core.Helpers
             var url = urls[0];
             Debug.WriteLine("Sending to :  '" + url + "'...");
 
-            byte[] packtosend = CreateOcspPackage(cert, cacert);
+            var packtosend = CreateOcspPackage(cert, cacert);
 
-            byte[] response = PostRequest(url, packtosend, "Content-Type", "application/ocsp-request");
+            var response = await PostRequestAsync(url, packtosend, "Content-Type", "application/ocsp-request");
 
             return VerifyResponse(response);
         }
 
         private byte[] ToByteArray(Stream stream)
         {
-            byte[] buffer = new byte[4096 * 8];
-            using (var ms = new MemoryStream())
-            {
-                int read = 0;
+            var buffer = new byte[4096 * 8];
+            using var ms = new MemoryStream();
+            var read = 0;
 
-                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                ms.Write(buffer, 0, read);
+            }
+
+            return ms.ToArray();
+        }
+
+        private async Task<byte[]> PostRequestAsync(string url, byte[] data, string contentType, string accept)
+        {
+            var httpClient = new HttpClient();
+            var httpRequest = new HttpRequestMessage
+            {
+                Method = HttpMethod.Post,
+                RequestUri = new Uri(url)
+            };
+
+            //Set the headers of the request
+            httpRequest.Headers.Add("Content-Type", contentType);
+            httpRequest.Headers.Add("Content-Length", data.Length.ToString());
+            httpRequest.Headers.Add("Accept", accept);
+
+            //A memory stream which is a temporary buffer that holds the payload of the request
+            using (var memoryStream = new MemoryStream())
+            {
+                //Write to the memory stream
+                memoryStream.Write(data, 0, data.Length);
+
+                //A stream content that represent the actual request stream
+                using (var stream = new StreamContent(memoryStream))
                 {
-                    ms.Write(buffer, 0, read);
+                    httpRequest.Content = stream;
+
+                    //Send the request
+                    var response = await httpClient.SendAsync(httpRequest);
+
+                    //you can access the response like that
+                    //response.Content
+
+                    Debug.WriteLine(string.Format("HttpStatusCode : {0}", response.StatusCode.ToString()));
+                    return ToByteArray(await response.Content.ReadAsStreamAsync());
                 }
-
-                return ms.ToArray();
             }
         }
 
-        private byte[] PostRequest(string url, byte[] data, string contentType, string accept)
+        private List<string>? GetAuthorityInformationAccessOcspUrl(X509Certificate cert)
         {
-            var request = (HttpWebRequest)WebRequest.Create(url);
-            request.Method = "POST";
-            request.ContentType = contentType;
-            request.ContentLength = data.Length;
-            request.Accept = accept;
-            using (var stream = request.GetRequestStream())
-            {
-                stream.Write(data, 0, data.Length);
-            }
-            var response = (HttpWebResponse)request.GetResponse();
-            using (var respStream = response.GetResponseStream())
-            {
-                Debug.WriteLine(string.Format("HttpStatusCode : {0}", response.StatusCode.ToString()));
-                byte[] resp = ToByteArray(respStream);
-                return resp;
-            }
-        }
-
-        private List<string> GetAuthorityInformationAccessOcspUrl(X509Certificate cert)
-        {
-            var ocspUrls = new List<string>();
+            var ocspUrls = new List<string>(1);
 
             try
             {
-                Asn1Object obj = GetExtensionValue(cert, X509Extensions.AuthorityInfoAccess.Id);
+                var obj = GetExtensionValue(cert, X509Extensions.AuthorityInfoAccess.Id);
 
                 if (obj == null)
                 {
                     return null;
                 }
-                Asn1Sequence s = (Asn1Sequence)obj;
-                IEnumerator elements = s.GetEnumerator();
+                var s = (Asn1Sequence)obj;
+                var elements = s.GetEnumerator();
 
                 while (elements.MoveNext())
                 {
-                    Asn1Sequence element = (Asn1Sequence)elements.Current;
-                    DerObjectIdentifier oid = (DerObjectIdentifier)element[0];
+                    var element = (Asn1Sequence)elements.Current;
+                    var oid = (DerObjectIdentifier)element[0];
 
                     if (oid.Id.Equals("1.3.6.1.5.5.7.48.1")) // Is Ocsp?
                     {
-                        Asn1TaggedObject taggedObject = (Asn1TaggedObject)element[1];
-                        GeneralName gn = GeneralName.GetInstance(taggedObject);
+                        var taggedObject = (Asn1TaggedObject)element[1];
+                        var gn = GeneralName.GetInstance(taggedObject);
                         ocspUrls.Add(DerIA5String.GetInstance(gn.Name).GetString());
                     }
                 }
@@ -131,8 +142,8 @@ namespace Certera.Core.Helpers
 
         private OcspStatus VerifyResponse(byte[] response)
         {
-            OcspResp r = new OcspResp(response);
-            OcspStatus cStatusEnum = OcspStatus.Unknown;
+            var r = new OcspResp(response);
+            var cStatusEnum = OcspStatus.Unknown;
             switch (r.Status)
             {
                 case OcspRespStatus.Successful:
@@ -142,7 +153,7 @@ namespace Certera.Core.Helpers
 
                     if (or.Responses.Length == 1)
                     {
-                        SingleResp resp = or.Responses[0];
+                        var resp = or.Responses[0];
 
                         var certificateStatus = resp.GetCertStatus();
 
@@ -160,15 +171,18 @@ namespace Certera.Core.Helpers
                         }
                     }
                     break;
+
                 case OcspResponseStatus.InternalError:
                 case OcspResponseStatus.TryLater:
                     cStatusEnum = OcspStatus.ServerError;
                     break;
+
                 case OcspResponseStatus.MalformedRequest:
                 case OcspResponseStatus.SignatureRequired:
                 case OcspResponseStatus.Unauthorized:
                     cStatusEnum = OcspStatus.ClientError;
                     break;
+
                 default:
                     Debug.WriteLine($"Unknow status '{r.Status}'.");
                     cStatusEnum = OcspStatus.Unknown;
@@ -178,7 +192,7 @@ namespace Certera.Core.Helpers
             return cStatusEnum;
         }
 
-        private static byte[] CreateOcspPackage(X509Certificate cert, X509Certificate cacert)
+        private static byte[]? CreateOcspPackage(X509Certificate cert, X509Certificate cacert)
         {
             var gen = new OcspReqGenerator();
             try
@@ -187,7 +201,7 @@ namespace Certera.Core.Helpers
 
                 gen.AddRequest(certId);
                 gen.SetRequestExtensions(CreateExtension());
-                OcspReq req = gen.Generate();
+                var req = gen.Generate();
 
                 return req.GetEncoded();
             }
@@ -205,14 +219,12 @@ namespace Certera.Core.Helpers
 
         private static X509Extensions CreateExtension()
         {
-            byte[] nonce = new byte[16];
-            Hashtable exts = new Hashtable();
-
-            BigInteger nc = BigInteger.ValueOf(DateTime.Now.Ticks);
-            X509Extension nonceext = new X509Extension(false, new DerOctetString(nc.ToByteArray()));
-
-            exts.Add(OcspObjectIdentifiers.PkixOcspNonce, nonceext);
-
+            var nc = BigInteger.ValueOf(DateTime.Now.Ticks);
+            var nonceext = new X509Extension(false, new DerOctetString(nc.ToByteArray()));
+            var exts = new Dictionary<DerObjectIdentifier, X509Extension>(1)
+            {
+                { OcspObjectIdentifiers.PkixOcspNonce, nonceext }
+            };
             return new X509Extensions(exts);
         }
 
@@ -227,7 +239,7 @@ namespace Certera.Core.Helpers
             var chain = new X509Chain();
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.Build(cert);
-            X509Certificate2 issuer = null;
+            X509Certificate2? issuer = null;
 
             if (chain.ChainElements.Count > 1)
             {
@@ -238,14 +250,14 @@ namespace Certera.Core.Helpers
             return issuer;
         }
 
-        private static Asn1Object GetExtensionValue(X509Certificate cert, string oid)
+        private static Asn1Object? GetExtensionValue(X509Certificate cert, string oid)
         {
             if (cert == null)
             {
                 return null;
             }
 
-            byte[] bytes = cert.GetExtensionValue(new DerObjectIdentifier(oid)).GetOctets();
+            var bytes = cert.GetExtensionValue(new DerObjectIdentifier(oid)).GetOctets();
 
             if (bytes == null)
             {
@@ -260,10 +272,9 @@ namespace Certera.Core.Helpers
         private static X509Certificate ConvertToBCX509Certificate(X509Certificate2 cert)
         {
             var parser = new X509CertificateParser();
-            byte[] certarr = cert.Export(X509ContentType.Cert);
+            var certarr = cert.Export(X509ContentType.Cert);
 
             return parser.ReadCertificate(certarr);
         }
     }
 }
-

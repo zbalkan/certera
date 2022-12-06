@@ -1,10 +1,10 @@
-﻿using Certera.Core.Extensions;
+﻿using System;
+using System.Linq;
+using Certera.Core.Extensions;
 using Certera.Data;
 using Certera.Data.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Linq;
 
 namespace Certera.Web.Services
 {
@@ -57,8 +57,8 @@ namespace Certera.Web.Services
                 };
             }
 
-            // Add the scan result when there hasn't been a successful scan yet (i.e. first time scanning)
-            // or when the thumbprint is different (i.e. the cert changed)
+            // Add the scan result when there hasn't been a successful scan yet (i.e. first time
+            // scanning) or when the thumbprint is different (i.e. the cert changed)
             var add = !domainHasScan || thumbprintDifferent;
 
             if (add)
@@ -69,27 +69,17 @@ namespace Certera.Web.Services
             return domainScan;
         }
 
-        public void ScanAll(long[] ids = null)
-        {
-            _queue.QueueBackgroundWorkItem(async token =>
-            {
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var domainScanSvc = scope.ServiceProvider.GetService<DomainScanService>();
-                    var dataContext = scope.ServiceProvider.GetService<DataContext>();
-                    var domains = dataContext.GetDomains(ids);
+        public void ScanAll(long[]? ids = null) => _queue.QueueBackgroundWorkItem(async token => {
+            using var scope = _scopeFactory.CreateScope();
+            var domainScanSvc = scope.ServiceProvider.GetService<DomainScanService>();
+            var dataContext = scope.ServiceProvider.GetService<DataContext>();
+            var domains = dataContext.GetDomains(ids);
 
-                    var batches = domains.Batch(4);
-                    foreach (var batch in batches)
-                    {
-                        batch.AsParallel().ForAll(domain =>
-                        {
-                            domainScanSvc.Scan(domain);
-                        });
-                    }
-                    await dataContext.SaveChangesAsync();
-                }
-            });
-        }
+            foreach (var batch in domains.Batch(4))
+            {
+                batch.AsParallel().ForAll(domain => domainScanSvc.Scan(domain));
+            }
+            await dataContext.SaveChangesAsync();
+        });
     }
 }

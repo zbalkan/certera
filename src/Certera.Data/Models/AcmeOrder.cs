@@ -1,7 +1,7 @@
-﻿using Certes.Acme;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
+using Certes.Acme;
 
 namespace Certera.Data.Models
 {
@@ -23,26 +23,20 @@ namespace Certera.Data.Models
 
         public virtual ICollection<AcmeRequest> AcmeRequests { get; set; } = new List<AcmeRequest>();
 
-        public X509Certificate2 Certificate
-        {
-            get
-            {
+        public X509Certificate2? Certificate {
+            get {
                 if (RawDataPem == null)
                 {
                     return null;
                 }
                 var chain = new CertificateChain(RawDataPem);
                 var bytes = chain.Certificate.ToDer();
-                var cert = new X509Certificate2(bytes);
-
-                return cert;
+                return new X509Certificate2(bytes);
             }
         }
 
-        public bool Completed
-        {
-            get
-            {
+        public bool Completed {
+            get {
                 return Status == AcmeOrderStatus.Completed;
             }
         }

@@ -1,27 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
+using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Certera.Data;
-using Certera.Data.Models;
 
 namespace Certera.Web.Pages.Acme.Accounts
 {
     public class EditModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly Data.DataContext _context;
 
-        public EditModel(Certera.Data.DataContext context)
+        public EditModel(Data.DataContext context)
         {
             _context = context;
         }
 
         [BindProperty]
         public AcmeAccount AcmeAccount { get; set; }
+
         [TempData]
         public string StatusMessage { get; set; }
 
@@ -40,7 +38,7 @@ namespace Certera.Web.Pages.Acme.Accounts
             {
                 return NotFound();
             }
-           ViewData["ApplicationUserId"] = new SelectList(_context.ApplicationUsers, "Id", "Id");
+            ViewData["ApplicationUserId"] = new SelectList(_context.ApplicationUsers, "Id", "Id");
             return Page();
         }
 
@@ -73,9 +71,6 @@ namespace Certera.Web.Pages.Acme.Accounts
             return RedirectToPage("./Index");
         }
 
-        private bool AcmeAccountExists(long id)
-        {
-            return _context.AcmeAccounts.Any(e => e.AcmeAccountId == id);
-        }
+        private bool AcmeAccountExists(long id) => _context.AcmeAccounts.Any(e => e.AcmeAccountId == id);
     }
 }

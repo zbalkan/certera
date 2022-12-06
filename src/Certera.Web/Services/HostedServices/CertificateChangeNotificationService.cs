@@ -1,14 +1,14 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Services.HostedServices
 {
@@ -16,10 +16,10 @@ namespace Certera.Web.Services.HostedServices
     {
         private readonly IServiceProvider _services;
         private readonly ILogger _logger;
-        private Timer _timer;
+        private Timer? _timer;
         private bool _running;
 
-        public CertificateChangeNotificationService(IServiceProvider services, 
+        public CertificateChangeNotificationService(IServiceProvider services,
             ILogger<CertificateChangeNotificationService> logger)
         {
             _services = services;
@@ -30,9 +30,9 @@ namespace Certera.Web.Services.HostedServices
         {
             _logger.LogInformation("Certificate change notification service starting.");
 
-            _timer = new Timer(TimerIntervalCallback, null,
-                TimeSpan.FromMinutes(3) /* start */,
-                TimeSpan.FromMinutes(60) /* interval */);
+            _timer = new Timer(callback: TimerIntervalCallback, state: null,
+                dueTime: TimeSpan.FromMinutes(3) /* start */,
+                period: TimeSpan.FromMinutes(60) /* interval */);
 
             return Task.CompletedTask;
         }
@@ -55,44 +55,44 @@ namespace Certera.Web.Services.HostedServices
 
         private void RunNotificationCheck()
         {
-            using (var scope = _services.CreateScope())
+            using var scope = _services.CreateScope();
+            try
             {
-                try
+                var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
+                if (setupOptions?.Value.Finished == false)
                 {
-                    var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
-                    if (!setupOptions.Value.Finished)
-                    {
-                        _logger.LogInformation("Skipping execution of certificate change notification service because setup is not complete.");
-                        return;
-                    }
-
-                    using (var notificationService = scope.ServiceProvider.GetService<NotificationService>())
-                    {
-                        var dataContext = scope.ServiceProvider.GetService<DataContext>();
-
-                        // Get the change events that were created when scans occurred
-                        var events = dataContext.DomainCertificateChangeEvents
-                            .Include(x => x.Domain)
-                            .Include(x => x.NewDomainCertificate)
-                            .Include(x => x.PreviousDomainCertificate)
-                            .Where(x => x.DateProcessed == null)
-                            .ToList();
-
-                        var notificationSettings = dataContext.NotificationSettings
-                            .Include(x => x.ApplicationUser)
-                            .Where(x => x.ChangeAlerts == true)
-                            .ToList();
-
-                        notificationService.SendDomainCertChangeNotification(notificationSettings, events);
-
-                        // User notified, save the record
-                        dataContext.SaveChanges();
-                    }
+                    _logger.LogInformation("Skipping execution of certificate change notification service because setup is not complete.");
+                    return;
                 }
-                catch (Exception e)
+
+                using var notificationService = scope.ServiceProvider.GetService<NotificationService>();
+                var dataContext = scope.ServiceProvider.GetService<DataContext>();
+                if (dataContext == null)
                 {
-                    _logger.LogError(e, "Certificate change notification job error.");
+                    throw new AggregateException("DataContext service is null.");
                 }
+
+                // Get the change events that were created when scans occurred
+                var events = dataContext.DomainCertificateChangeEvents
+                    .Include(x => x.Domain)
+                    .Include(x => x.NewDomainCertificate)
+                    .Include(x => x.PreviousDomainCertificate)
+                    .Where(x => x.DateProcessed == null)
+                    .ToList();
+
+                var notificationSettings = dataContext.NotificationSettings
+                    .Include(x => x.ApplicationUser)
+                    .Where(x => x.ChangeAlerts)
+                    .ToList();
+
+                notificationService.SendDomainCertChangeNotification(notificationSettings, events);
+
+                // User notified, save the record
+                dataContext.SaveChanges();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Certificate change notification job error.");
             }
         }
 
@@ -106,6 +106,7 @@ namespace Certera.Web.Services.HostedServices
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -123,10 +124,8 @@ namespace Certera.Web.Services.HostedServices
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "No unmanaged resources")]
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
+        public void Dispose() => Dispose(true);
+
+        #endregion IDisposable Support
     }
 }

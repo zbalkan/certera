@@ -1,23 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.Services;
 using Certes;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Certera.Web.Pages.Certificates
 {
     public class CreateModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly DataContext _context;
         private readonly KeyGenerator _keyGenerator;
 
-        public CreateModel(Certera.Data.DataContext context, KeyGenerator keyGenerator)
+        public CreateModel(DataContext context, KeyGenerator keyGenerator)
         {
             _context = context;
             _keyGenerator = keyGenerator;
@@ -29,16 +27,12 @@ namespace Certera.Web.Pages.Certificates
             return Page();
         }
 
-        private void LoadData()
-        {
-            ViewData["AcmeAccountId"] = new SelectList(
-                _context.AcmeAccounts.Select(x => new
-                {
+        private void LoadData() => ViewData["AcmeAccountId"] = new SelectList(
+                _context.AcmeAccounts.Select(x => new {
                     Id = x.AcmeAccountId,
                     Name = x.AcmeContactEmail + (x.IsAcmeStaging ? " (staging)" : string.Empty)
                 })
                 , "Id", "Name");
-        }
 
         [BindProperty]
         public AcmeCertificate AcmeCertificate { get; set; }

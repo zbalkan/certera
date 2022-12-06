@@ -1,10 +1,10 @@
-﻿using Certera.Core.Extensions;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Certera.Core.Extensions;
 using Certera.Data.Models;
 using Certera.Data.Views;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Certera.Data
 {
@@ -86,16 +86,13 @@ namespace Certera.Data
                 .WithOne(x => x.Domain)
                 .HasForeignKey(x => x.DomainId);
 
-
             builder.Entity<DomainCertificate>()
                 .Property(x => x.DateCreated)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-
             builder.Entity<DomainCertificateChangeEvent>()
                 .Property(x => x.DateCreated)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
 
             builder.Entity<DomainScan>()
                 .HasOne(x => x.Domain)
@@ -135,18 +132,20 @@ namespace Certera.Data
         public IEnumerable<TrackedCertificate> GetTrackedCertificates()
         {
             var domainsView = GetDomains()
-                .Select(x => TrackedCertificate.FromDomain(x));
+                .Select(TrackedCertificate.FromDomain);
 
-            var uploadedView = (DomainCertificates
+            var uploadedView = DomainCertificates
                 .Where(x => x.CertificateSource == CertificateSource.Uploaded)
-                .ToList())
-                .Select(x => TrackedCertificate.FromDomainCertificate(x));
+                .Select(TrackedCertificate.FromDomainCertificate);
 
             var domainsAndUploadedCerts = domainsView.Union(uploadedView).ToList();
-
+            if (domainsAndUploadedCerts == null)
+            {
+                return new List<TrackedCertificate>();
+            }
             // Get all ACME certificates that we've issued and attempt to match or add as new
             var acmeCertsView = GetAcmeCertificates()
-                .Select(x => TrackedCertificate.FromAcmeCertificate(x))
+                .Select(TrackedCertificate.FromAcmeCertificate)
                 .Where(x => x != null)
                 .ToList();
 
@@ -161,32 +160,31 @@ namespace Certera.Data
                 {
                     continue;
                 }
-                if (acmeCertDict.ContainsKey(cert.Thumbprint))
+                if (acmeCertDict.TryGetValue(cert.Thumbprint, out var value))
                 {
-                    cert.AcmeCertType = acmeCertDict[cert.Thumbprint].AcmeCertType;
+                    cert.AcmeCertType = value.AcmeCertType;
                     toRemove.Add(cert.Thumbprint);
                 }
             }
             acmeCertsView.RemoveAll(x => toRemove.Contains(x.Thumbprint));
-            var allTrackedCerts = domainsAndUploadedCerts.Union(acmeCertsView);
-            return allTrackedCerts;
+            return domainsAndUploadedCerts.Union(acmeCertsView);
         }
 
         #region Certs
+
         public IList<AcmeCertificate> GetAcmeCertificates()
         {
             var certs = AcmeCertQuery().ToList();
             if (!certs.IsNullOrEmpty())
             {
                 var orders = AcmeCertOrderQuery()
-                    .ToList()
                     .Where(x => x.LatestValidAcmeOrder != null)
                     .ToDictionary(x => x.LatestValidAcmeOrder.AcmeCertificateId, x => x);
                 foreach (var cert in certs)
                 {
-                    if (orders.ContainsKey(cert.AcmeCertificateId))
+                    if (orders.TryGetValue(cert.AcmeCertificateId, out var value))
                     {
-                        cert.LatestValidAcmeOrder = orders[cert.AcmeCertificateId].LatestValidAcmeOrder;
+                        cert.LatestValidAcmeOrder = value.LatestValidAcmeOrder;
                     }
                 }
             }
@@ -194,7 +192,7 @@ namespace Certera.Data
             return certs;
         }
 
-        public AcmeCertificate GetAcmeCertificate(string host, bool? staging = null)
+        public AcmeCertificate? GetAcmeCertificate(string host, bool? staging = null)
         {
             var query = AcmeCertQuery();
 
@@ -215,17 +213,12 @@ namespace Certera.Data
             return cert;
         }
 
-        public IQueryable<AcmeCertificate> AcmeCertQuery()
-        {
-            return AcmeCertificates
+        public IQueryable<AcmeCertificate> AcmeCertQuery() => AcmeCertificates
                 .Include(x => x.Key)
                 .Include(x => x.AcmeAccount)
                     .ThenInclude(x => x.Key);
 
-        }
-        public IQueryable<AcmeCertOrderContainer> AcmeCertOrderQuery()
-        {
-            return AcmeCertificates
+        public IQueryable<AcmeCertOrderContainer> AcmeCertOrderQuery() => AcmeCertificates
                 .Include(x => x.AcmeOrders)
                     .ThenInclude(x => x.DomainCertificate)
                 .Select(x => new AcmeCertOrderContainer
@@ -235,10 +228,10 @@ namespace Certera.Data
                             .FirstOrDefault(y => y.Status == AcmeOrderStatus.Completed)
                 });
 
-        }
-        #endregion
+        #endregion Certs
 
         #region Domains
+
         public Domain GetDomain(long id)
         {
             var domain = Domains.FirstOrDefault(x => x.DomainId == id);
@@ -252,7 +245,7 @@ namespace Certera.Data
             return domain;
         }
 
-        public IList<Domain> GetDomains(long[] ids = null)
+        public IList<Domain> GetDomains(long[]? ids = null)
         {
             var domainQuery = Domains.AsQueryable();
             if (ids != null)
@@ -264,15 +257,14 @@ namespace Certera.Data
             if (!domains.IsNullOrEmpty())
             {
                 var domainScans = DomainScansQuery()
-                    .ToList()
                     .Where(x => x.LatestDomainScan != null)
                     .ToDictionary(x => x.LatestDomainScan.DomainId, x => x);
                 foreach (var domain in domains)
                 {
-                    if (domainScans.ContainsKey(domain.DomainId))
+                    if (domainScans.TryGetValue(domain.DomainId, out var value))
                     {
-                        domain.LatestDomainScan = domainScans[domain.DomainId].LatestDomainScan;
-                        domain.LatestValidDomainScan = domainScans[domain.DomainId].LatestValidDomainScan;
+                        domain.LatestDomainScan = value.LatestDomainScan;
+                        domain.LatestValidDomainScan = value.LatestValidDomainScan;
                     }
                 }
             }
@@ -288,15 +280,14 @@ namespace Certera.Data
             if (!domains.IsNullOrEmpty())
             {
                 var domainScans = DomainScansQuery(timeAgo)
-                    .ToList()
                     .Where(x => x.LatestDomainScan != null)
                     .ToDictionary(x => x.LatestDomainScan.DomainId, x => x);
                 foreach (var domain in domains)
                 {
-                    if (domainScans.ContainsKey(domain.DomainId))
+                    if (domainScans.TryGetValue(domain.DomainId, out var value))
                     {
-                        domain.LatestDomainScan = domainScans[domain.DomainId].LatestDomainScan;
-                        domain.LatestValidDomainScan = domainScans[domain.DomainId].LatestValidDomainScan;
+                        domain.LatestDomainScan = value.LatestDomainScan;
+                        domain.LatestValidDomainScan = value.LatestValidDomainScan;
                     }
                 }
             }
@@ -320,31 +311,28 @@ namespace Certera.Data
             {
                 query = query.Where(x => x.DateLastScanned == null || x.DateLastScanned < timeAgo);
             }
-            
-            var results = query.Select(x => new DomainScanContainer
+
+            return query.Select(x => new DomainScanContainer
             {
                 LatestDomainScan = x.DomainScans
                         .OrderByDescending(x => x.DateScan)
                         .FirstOrDefault(),
                 LatestValidDomainScan = x.DomainScans
-                        .OrderByDescending(x => x.DateScan)
                         .Where(x => x.ScanSuccess)
+                        .OrderByDescending(x => x.DateScan)
                         .FirstOrDefault()
             });
-            return results;
         }
 
         public IList<DomainCertificate> GetUnsentCertChangeNotifications()
         {
-            // Get all of the domains that have at least 2 scans
-            // and the certificates are different and
-            // the latest one's thumbprint isn't in the UserNotifications table
+            // Get all of the domains that have at least 2 scans and the certificates are different
+            // and the latest one's thumbprint isn'converted in the UserNotifications table
 
             var domainsWithScans = Domains
                 .Include(x => x.DomainScans)
                 .ThenInclude(x => x.DomainCertificate)
-                .Select(x => new
-                {
+                .Select(x => new {
                     LatestDomainScan = x.DomainScans
                         .OrderByDescending(x => x.DateScan)
                         .Take(1),
@@ -356,7 +344,7 @@ namespace Certera.Data
                         .Join(UserNotifications,
                             s => s.DomainCertificate.Thumbprint,
                             n => n.DomainCertificate.Thumbprint,
-                            (scan, notif) => notif)
+                            (_, notif) => notif)
                 })
                 .ToList();
 
@@ -364,9 +352,10 @@ namespace Certera.Data
                 .Select(x => x.LatestDomainScan.FirstOrDefault()?.DomainCertificate)
                 .ToList();
         }
-        #endregion
 
-        public T GetSetting<T>(Settings setting, T @default)
+        #endregion Domains
+
+        public T? GetSetting<T>(Settings setting, T @default)
         {
             var settingRecord = Settings.FirstOrDefault(x => x.Name == setting.ToString());
 
@@ -384,7 +373,8 @@ namespace Certera.Data
             }
             else
             {
-                return (T)Convert.ChangeType(settingRecord?.Value, typeof(T));
+                var converted = Convert.ChangeType(settingRecord?.Value, typeof(T));
+                return converted is null ? default : (T)converted;
             }
         }
 

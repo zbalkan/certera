@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace Certera.Core.Notifications
@@ -32,18 +29,12 @@ namespace Certera.Core.Notifications
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .ToDictionary(x => x.Name, x => x.GetValue(parameters) as string);
 
-            var result = Regex.Replace(template, pattern, 
-                match => 
-                {
+            return Regex.Replace(template, pattern,
+                match => {
                     var property = match.Value.Substring(2, match.Value.Length - 4);
-                    if (parameterValues.TryGetValue(property, out var value))
-                    {
-                        return value;
-                    }
-                    return string.Empty;
+                    return parameterValues.TryGetValue(property, out var value) ? value : string.Empty;
                 }
              );
-            return result;
         }
 
         private static string ReadManifestData(string embeddedFileName)
@@ -52,17 +43,13 @@ namespace Certera.Core.Notifications
             var resourceName = assembly.GetManifestResourceNames()
                 .First(s => s.EndsWith(embeddedFileName, StringComparison.CurrentCultureIgnoreCase));
 
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
             {
-                if (stream == null)
-                {
-                    throw new InvalidOperationException("Could not load manifest resource stream.");
-                }
-                using (var reader = new StreamReader(stream))
-                {
-                    return reader.ReadToEnd();
-                }
+                throw new InvalidOperationException("Could not load manifest resource stream.");
             }
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
         }
     }
 }

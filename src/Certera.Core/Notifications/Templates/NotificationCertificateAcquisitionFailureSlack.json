@@ -10,7 +10,6 @@
     {
       "type": "section",
       "text": {
-
         "type": "mrkdwn",
         "text": "*Error:*\n{{Error}}\n\n*Last acquired:*\n{{LastAcquiryText}}\n\n{{PreviousCertificateDetails}}"
       }

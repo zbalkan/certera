@@ -1,4 +1,11 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Linq;
+using System.Net;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Extensions;
 using Certera.Web.Options;
 using Certes;
@@ -15,13 +22,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Net;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Certera.Web
 {
@@ -37,8 +37,7 @@ namespace Certera.Web
             while (true)
             {
                 _cancelTokenSource = new CancellationTokenSource();
-                Thread appThread = new Thread(new ThreadStart(() =>
-                {
+                var appThread = new Thread(new ThreadStart(() => {
                     var host = CreateHostBuilder(args).Build().InitializeDatabase();
                     try
                     {
@@ -82,10 +81,8 @@ namespace Certera.Web
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureWebHost(builder =>
-                {
-                    builder.ConfigureAppConfiguration((hostingContext, appBuilder) =>
-                    {
+                .ConfigureWebHost(builder => {
+                    builder.ConfigureAppConfiguration((hostingContext, appBuilder) => {
                         var env = hostingContext.HostingEnvironment;
 
                         ConfigFileName = env.IsProduction()
@@ -96,10 +93,7 @@ namespace Certera.Web
                                   .AddJsonFile($"config.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
                     })
                     .UseKestrel()
-                    .ConfigureKestrel((context, options) =>
-                    {
-                        options.ConfigureEndpoints();
-                    })
+                    .ConfigureKestrel((context, options) => options.ConfigureEndpoints())
                     .UseStartup<Startup>();
                 });
     }
@@ -111,20 +105,23 @@ namespace Certera.Web
             using (var scope = host.Services.CreateScope())
             {
                 var context = scope.ServiceProvider.GetService<DataContext>();
+                if (context == null)
+                {
+                    throw new AggregateException("DataContext service is null.");
+                }
 
                 var env = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
 
                 // Run a DB migration if the DB doesn't exist or there are pending migrations
-                var migrate = !(context.Database.GetService<IDatabaseCreator>() as RelationalDatabaseCreator).Exists() ||
-                    context.Database.GetPendingMigrations().Any();
+                var rdc = context?.Database?.GetService<IDatabaseCreator>() as RelationalDatabaseCreator;
+                var migrate = rdc != null && (!rdc.Exists() || context.Database.GetPendingMigrations().Any());
 
                 if (migrate)
                 {
                     context.Database.Migrate();
                 }
 
-                Task.Run(async () =>
-                {
+                Task.Run(async () => {
                     var roleMgr = scope.ServiceProvider.GetService<RoleManager<Role>>();
                     if (!await roleMgr.RoleExistsAsync("Admin"))
                     {
@@ -163,14 +160,11 @@ namespace Certera.Web
 
             // Configure HTTPS on port 443
             options.ListenAnyIP(443,
-                listenOptions =>
-                {
-                    listenOptions.UseHttps(httpsOptions =>
-                    {
-                        httpsOptions.ServerCertificateSelector = (ctx, name) =>
-                        {
-                            // If we're here, it means we've already completed setup
-                            // and there should be a cert.
+                listenOptions => {
+                    listenOptions.UseHttps(httpsOptions => {
+                        httpsOptions.ServerCertificateSelector = (ctx, name) => {
+                            // If we're here, it means we've already completed setup and there
+                            // should be a cert.
 
                             // Try to get the cert and fallback to default localhost cert.
                             // TODO: check for closure issues on "options" below
@@ -180,7 +174,7 @@ namespace Certera.Web
                 });
         }
 
-        private static X509Certificate2 GetHttpsCertificate(ConnectionContext connectionContext, KestrelServerOptions options, string name)
+        private static X509Certificate2? GetHttpsCertificate(ConnectionContext connectionContext, KestrelServerOptions options, string name)
         {
             // Bail early if we're connecting locally
             if (connectionContext.IsLocal())
@@ -198,12 +192,9 @@ namespace Certera.Web
                 // If setup hasn't completed yet, serve a cert with the hostname being requested
                 if (string.IsNullOrWhiteSpace(host))
                 {
-                    // This server could be on a VPS or cloud (i.e. not locally accessible), 
-                    // create and serve a temporary, self-signed cert for this hostname.
-                    if (_tempCert == null)
-                    {
-                        _tempCert = GenerateSelfSignedCertificate(name);
-                    }
+                    // This server could be on a VPS or cloud (i.e. not locally accessible), create
+                    // and serve a temporary, self-signed cert for this hostname.
+                    _tempCert ??= GenerateSelfSignedCertificate(name);
                     logger.LogDebug($"Serve self-signed certificate for {name}");
                     return _tempCert;
                 }
@@ -249,43 +240,41 @@ namespace Certera.Web
         {
             var distinguishedName = new X500DistinguishedName($"CN={name}");
 
-            using (var rsa = RSA.Create(2048))
-            {
-                var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            using var rsa = RSA.Create(2048);
+            var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-                request.CertificateExtensions.Add(
-                    new X509KeyUsageExtension(
-                        X509KeyUsageFlags.DataEncipherment | 
-                        X509KeyUsageFlags.KeyEncipherment | 
-                        X509KeyUsageFlags.DigitalSignature, false));
+            request.CertificateExtensions.Add(
+                new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DataEncipherment |
+                    X509KeyUsageFlags.KeyEncipherment |
+                    X509KeyUsageFlags.DigitalSignature, false));
 
-                request.CertificateExtensions.Add(
-                   new X509EnhancedKeyUsageExtension(
-                       new OidCollection
-                       {
+            request.CertificateExtensions.Add(
+               new X509EnhancedKeyUsageExtension(
+                   new OidCollection
+                   {
                             new Oid("1.3.6.1.5.5.7.3.1"), // server auth
                             new Oid("1.3.6.1.5.5.7.3.2")  // client auth
-                       }, false));
+                   }, false));
 
-                // When creating the localhost certificate, add the other names
-                if (string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase))
-                {
-                    var sanBuilder = new SubjectAlternativeNameBuilder();
-                    sanBuilder.AddIpAddress(IPAddress.Loopback);
-                    sanBuilder.AddIpAddress(IPAddress.IPv6Loopback);
-                    sanBuilder.AddDnsName("localhost");
-                    sanBuilder.AddDnsName(Environment.MachineName);
+            // When creating the localhost certificate, add the other names
+            if (string.Equals(name, "localhost", StringComparison.OrdinalIgnoreCase))
+            {
+                var sanBuilder = new SubjectAlternativeNameBuilder();
+                sanBuilder.AddIpAddress(IPAddress.Loopback);
+                sanBuilder.AddIpAddress(IPAddress.IPv6Loopback);
+                sanBuilder.AddDnsName("localhost");
+                sanBuilder.AddDnsName(Environment.MachineName);
 
-                    request.CertificateExtensions.Add(sanBuilder.Build());
-                }
-
-                var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)),
-                    new DateTimeOffset(DateTime.UtcNow.AddDays(90)));
-
-                var tempPwd = Guid.NewGuid().ToString();
-
-                return new X509Certificate2(certificate.Export(X509ContentType.Pfx, tempPwd), tempPwd, X509KeyStorageFlags.MachineKeySet);
+                request.CertificateExtensions.Add(sanBuilder.Build());
             }
+
+            var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)),
+                new DateTimeOffset(DateTime.UtcNow.AddDays(90)));
+
+            var tempPwd = Guid.NewGuid().ToString();
+
+            return new X509Certificate2(certificate.Export(X509ContentType.Pfx, tempPwd), tempPwd, X509KeyStorageFlags.MachineKeySet);
         }
     }
 }

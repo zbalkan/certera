@@ -1,6 +1,6 @@
-﻿using Certera.Data.Models;
+﻿using System.Collections.Generic;
+using Certera.Data.Models;
 using Microsoft.AspNetCore.Identity;
-using System.Collections.Generic;
 
 namespace Certera.Data
 {

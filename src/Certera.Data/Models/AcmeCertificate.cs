@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Internal;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -15,7 +14,7 @@ namespace Certera.Data.Models
         public long AcmeCertificateId { get; set; }
 
         [Required]
-        [RegularExpression("^[a-zA-Z0-9-_.]+$", 
+        [RegularExpression("^[a-zA-Z0-9-_.]+$",
             ErrorMessage = "Only alpha-numeric and the following characters: . - _ (no whitespace allowed)")]
         public string Name { get; set; }
 
@@ -72,14 +71,8 @@ namespace Certera.Data.Models
         [NotMapped]
         public AcmeOrder LatestValidAcmeOrder { get; set; }
 
-        public AcmeOrder GetLatestValidAcmeOrder()
-        {
-            return AcmeOrders.Where(x => x.Status == AcmeOrderStatus.Completed).OrderByDescending(x => x.DateCreated).FirstOrDefault();
-        }
+        public AcmeOrder GetLatestValidAcmeOrder() => AcmeOrders.Where(x => x.Status == AcmeOrderStatus.Completed).OrderByDescending(x => x.DateCreated).FirstOrDefault();
 
-        public bool IsDnsChallengeType()
-        {
-            return string.Equals(ChallengeType, "dns-01", StringComparison.OrdinalIgnoreCase);
-        }
+        public bool IsDnsChallengeType() => string.Equals(ChallengeType, "dns-01", StringComparison.OrdinalIgnoreCase);
     }
 }

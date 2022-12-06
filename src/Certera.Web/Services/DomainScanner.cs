@@ -1,9 +1,4 @@
-﻿using DnsClient;
-using Certera.Core.Concurrency;
-using Certera.Data.Models;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -11,6 +6,11 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
+using Certera.Core.Concurrency;
+using Certera.Data.Models;
+using DnsClient;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Certera.Web.Services
 {
@@ -18,11 +18,11 @@ namespace Certera.Web.Services
     public class DomainScanner
     {
         private readonly Domain _domain;
-        private readonly ILookupClient _lookupClient;
-        private readonly ILogger _logger;
-        private X509Certificate2 _certificate;
-        private List<string> _messages = new List<string>();
-        private string _scanStatus;
+        private readonly ILookupClient? _lookupClient;
+        private readonly ILogger? _logger;
+        private X509Certificate2? _certificate;
+        private readonly List<string> _messages = new List<string>();
+        private string? _scanStatus;
 
         public DomainScanner(Domain domain, IServiceProvider serviceProvider)
         {
@@ -38,41 +38,37 @@ namespace Certera.Web.Services
             _logger = logger;
         }
 
-        public DomainScan Scan()
-        {
-            return NamedLocker.RunWithLock(_domain.Uri, () =>
+        public DomainScan Scan() => NamedLocker.RunWithLock(_domain.Uri, () => {
+            _logger?.LogInformation($"Scanning domain {_domain.Uri}");
+            var uri = new Uri(_domain.Uri);
+            var hostEntry = _lookupClient.GetHostEntry(uri.Host);
+            if (hostEntry?.AddressList.Length > 0)
             {
-                _logger.LogInformation($"Scanning domain {_domain.Uri}");
-                var uri = new Uri(_domain.Uri);
-                var hostEntry = _lookupClient.GetHostEntry(uri.Host);
-                if (hostEntry != null && hostEntry.AddressList.Any())
-                {
-                    var msg = $"{uri.Host} resolved to the following IP addresses: " +
-                        $"{string.Join(", ", hostEntry.AddressList.Select(x => x))}";
-                    _messages.Add(msg);
+                var msg = $"{uri.Host} resolved to the following IP addresses: " +
+                    $"{string.Join(", ", hostEntry.AddressList.Select(x => x))}";
+                _messages.Add(msg);
 
-                    _logger.LogDebug(msg);
+                _logger?.LogDebug(msg);
 
-                    var ip = hostEntry.AddressList.First();
-                    OpenSslConnection(uri.Host, ip, uri.Port);
-                }
-                var domainCert = DomainCertificate.FromX509Certificate2(_certificate, CertificateSource.TrackedDomain);
-                _certificate?.Dispose();
+                var ip = hostEntry.AddressList[0];
+                OpenSslConnection(uri.Host, ip, uri.Port);
+            }
+            var domainCert = DomainCertificate.FromX509Certificate2(_certificate, CertificateSource.TrackedDomain);
+            _certificate?.Dispose();
 
-                var domainScan = new DomainScan
-                {
-                    DateScan = DateTime.UtcNow,
-                    DomainCertificate = domainCert,
-                    ScanResult = string.Join("\r\n", _messages),
-                    ScanSuccess = domainCert != null,
-                    ScanStatus = _scanStatus
-                };
-                _logger.LogInformation($"Domain scan finished {(domainScan.ScanSuccess ? "successfully" : "unsuccessfully")} " +
-                    $"for {_domain.Uri}");
+            var domainScan = new DomainScan
+            {
+                DateScan = DateTime.UtcNow,
+                DomainCertificate = domainCert,
+                ScanResult = string.Join("\r\n", _messages),
+                ScanSuccess = domainCert != null,
+                ScanStatus = _scanStatus
+            };
+            _logger?.LogInformation($"Domain scan finished {(domainScan.ScanSuccess ? "successfully" : "unsuccessfully")} " +
+                $"for {_domain.Uri}");
 
-                return domainScan;
-            });
-        }
+            return domainScan;
+        });
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Security", "CA5397:Do not use deprecated SslProtocols values", Justification = "<Pending>")]
         private void OpenSslConnection(string host, IPAddress ip, int port)
@@ -82,39 +78,45 @@ namespace Certera.Web.Services
             {
                 try
                 {
-                    using (var client = new TcpClient())
+                    using var client = new TcpClient();
+                    if (client.ConnectAsync(ip, port).Wait(5000))
                     {
-                        if (client.ConnectAsync(ip, port).Wait(5000))
+                        using (var sslStream = new SslStream(
+                            client.GetStream(),
+                            false,
+                            new RemoteCertificateValidationCallback(ValidateServerCertificate),
+                            null
+                        ))
                         {
-                            using (var sslStream = new SslStream(
-                                client.GetStream(),
-                                false,
-                                new RemoteCertificateValidationCallback(ValidateServerCertificate),
-                                null
-                            ))
-                            {
-                                sslStream.AuthenticateAsClient(host, null,
+#pragma warning disable SYSLIB0039 // Type or member is obsolete
+                            sslStream.AuthenticateAsClient(host, null,
 #pragma warning disable CS0618 // Type or member is obsolete
-                            SslProtocols.Ssl2 | SslProtocols.Ssl3 | SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12,
+                        enabledSslProtocols:
+                            SslProtocols.Ssl2
+                            | SslProtocols.Ssl3
+                            | SslProtocols.Tls
+                            | SslProtocols.Tls11
+                            | SslProtocols.Tls12
+                            | SslProtocols.Tls13,
 #pragma warning restore CS0618 // Type or member is obsolete
-                            false);
-                            }
-
-                            var msg = $"SSL connection established to {host} ({ip}:{port})";
-
-                            _messages.Add(msg);
-                            _logger.LogDebug(msg);
-
-                            break;
+                        false);
+#pragma warning restore SYSLIB0039 // Type or member is obsolete
                         }
-                        else
-                        {
-                            _scanStatus = "connection timeout";
-                            var msg = $"SSL connection timeout to {host} ({ip}:{port})";
 
-                            _messages.Add(msg);
-                            _logger.LogDebug(msg);
-                        }
+                        var msg = $"SSL connection established to {host} ({ip}:{port})";
+
+                        _messages.Add(msg);
+                        _logger?.LogDebug(msg);
+
+                        break;
+                    }
+                    else
+                    {
+                        _scanStatus = "connection timeout";
+                        var msg = $"SSL connection timeout to {host} ({ip}:{port})";
+
+                        _messages.Add(msg);
+                        _logger?.LogDebug(msg);
                     }
                 }
                 catch (Exception e)
@@ -123,7 +125,7 @@ namespace Certera.Web.Services
                     _scanStatus = "error";
 
                     _messages.Add(msg + " Error: {e.Message}");
-                    _logger.LogError(e, msg);
+                    _logger?.LogError(e, msg);
                 }
             }
             while (--tries > 0);
@@ -143,17 +145,17 @@ namespace Certera.Web.Services
                     $"from {certificate.GetEffectiveDateString()} " +
                     $"to {certificate.GetExpirationDateString()} | " +
                     $"issued by {certificate.Issuer} | " +
-                    $"policy errors: {sslPolicyErrors.ToString()} | " +
+                    $"policy errors: {sslPolicyErrors} | " +
                     $"verify result: {_certificate.Verify()}";
 
                 _messages.Add(msg);
-                _logger.LogDebug(msg);
+                _logger?.LogDebug(msg);
 
                 return true;
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Error validating certificate");
+                _logger?.LogError(e, "Error validating certificate");
                 return false;
             }
         }

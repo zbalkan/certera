@@ -12,9 +12,6 @@ namespace Certera.Web.Pages.Setup
             _setupOptions = setupOptions;
         }
 
-        public void OnGet()
-        {
-            _setupOptions.Update(x => x.Finished = true);
-        }
+        public void OnGet() => _setupOptions.Update(x => x.Finished = true);
     }
 }

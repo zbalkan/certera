@@ -1,6 +1,6 @@
-﻿using Certera.Data.Models;
+﻿using System;
 using Certera.Core.Extensions;
-using System;
+using Certera.Data.Models;
 
 namespace Certera.Data.Views
 {
@@ -80,7 +80,7 @@ namespace Certera.Data.Views
             };
         }
 
-        public static TrackedCertificate FromAcmeCertificate(AcmeCertificate cert)
+        public static TrackedCertificate? FromAcmeCertificate(AcmeCertificate cert)
         {
             if (cert.LatestValidAcmeOrder?.DomainCertificate == null)
             {

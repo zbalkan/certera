@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using System;
+using System.IO;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.IO;
 
 namespace Certera.Web.Options
 {
@@ -35,6 +34,7 @@ namespace Certera.Web.Options
         }
 
         public T Value => _options.CurrentValue;
+
         public T Get(string name) => _options.Get(name);
 
         public void Update(Action<T> applyChanges)
@@ -44,7 +44,7 @@ namespace Certera.Web.Options
             var physicalPath = fileInfo.PhysicalPath;
 
             var jObject = JsonConvert.DeserializeObject<JObject>(File.ReadAllText(physicalPath));
-            var sectionObject = jObject.TryGetValue(_section, out JToken section) ?
+            var sectionObject = jObject.TryGetValue(_section, out var section) ?
                 JsonConvert.DeserializeObject<T>(section.ToString()) : (Value ?? new T());
 
             applyChanges(sectionObject);
@@ -59,15 +59,11 @@ namespace Certera.Web.Options
         public static void ConfigureWritable<T>(
             this IServiceCollection services,
             IConfigurationSection section,
-            string file = null) where T : class, new()
+            string? file = null) where T : class, new()
         {
-            if (file == null)
-            {
-                file = Program.ConfigFileName;
-            }
+            file ??= Program.ConfigFileName;
             services.Configure<T>(section);
-            services.AddTransient<IWritableOptions<T>>(provider =>
-            {
+            services.AddTransient<IWritableOptions<T>>(provider => {
                 var environment = provider.GetService<IHostEnvironment>();
                 var options = provider.GetService<IOptionsMonitor<T>>();
                 return new WritableOptions<T>(environment, options, section.Key, file);

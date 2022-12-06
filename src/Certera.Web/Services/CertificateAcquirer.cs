@@ -1,11 +1,11 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.AcmeProviders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Services
 {
@@ -96,7 +96,7 @@ namespace Certera.Web.Services
             {
                 var notificationSettings = _dataContext.NotificationSettings
                         .Include(x => x.ApplicationUser)
-                        .Where(x => x.AcquisitionFailureAlerts == true)
+                        .Where(x => x.AcquisitionFailureAlerts)
                         .ToList();
 
                 var lastValidAcmeOrder = _dataContext.AcmeOrders

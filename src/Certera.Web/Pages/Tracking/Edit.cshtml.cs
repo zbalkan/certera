@@ -1,4 +1,9 @@
-﻿using Certera.Core.Helpers;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
+using Certera.Core.Helpers;
 using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.Extensions;
@@ -7,11 +12,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Tracking
 {
@@ -42,8 +42,7 @@ namespace Certera.Web.Pages.Tracking
             var allDomains = await _dataContext.Domains
                 .OrderBy(x => x.Order)
                 .ToListAsync();
-            var viewDomains = string.Join(Environment.NewLine, allDomains.Select(x => 
-            {
+            var viewDomains = string.Join(Environment.NewLine, allDomains.Select(x => {
                 var domain = x.Uri;
                 if (domain.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
@@ -77,7 +76,7 @@ namespace Certera.Web.Pages.Tracking
         private async Task AddOrUpdateCertificate(IFormFile certificateFile)
         {
             var bytes = await certificateFile.ReadAsBytesAsync();
-            X509Certificate2 cert = null;
+            X509Certificate2? cert = null;
             try
             {
                 cert = new X509Certificate2(bytes);
@@ -118,8 +117,7 @@ namespace Certera.Web.Pages.Tracking
             var entries = Input.Domains
                 .Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x =>
-                {
+                .Select(x => {
                     var domain = x.Trim();
                     if (!domain.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                     {
@@ -135,8 +133,8 @@ namespace Certera.Web.Pages.Tracking
             var count = 0;
             foreach (var entry in entries)
             {
-                // Ensure entries are valid by checking whether they are malformed and
-                // are of the correct protocol
+                // Ensure entries are valid by checking whether they are malformed and are of the
+                // correct protocol
                 if (!Uri.IsWellFormedUriString(entry, UriKind.Absolute))
                 {
                     ModelState.AddModelError("Input.Domains", $"{entry} - Malformed URI");
@@ -153,8 +151,7 @@ namespace Certera.Web.Pages.Tracking
                     continue;
                 }
 
-                // If the domain exists already, update the order and continue
-                // on to the next entry.
+                // If the domain exists already, update the order and continue on to the next entry.
                 if (currentDomains.TryGetValue(entry, out var existingDomain))
                 {
                     existingDomain.Order = count++;
@@ -162,7 +159,7 @@ namespace Certera.Web.Pages.Tracking
                 }
 
                 var registrableDomain = DomainParser.RegistrableDomain(uri.Host);
-                var domain = new Data.Models.Domain
+                var domain = new Domain
                 {
                     Uri = entry,
                     RegistrableDomain = registrableDomain,
@@ -178,8 +175,7 @@ namespace Certera.Web.Pages.Tracking
                 return;
             }
 
-            // Domains to delete are the ones that are in the current set
-            // and not specified by the user
+            // Domains to delete are the ones that are in the current set and not specified by the user
             var domainsToDelete = currentDomains
                 .Where(x => !entriesHashSet.Contains(x.Key))
                 .Select(x => x.Value)

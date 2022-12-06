@@ -1,18 +1,18 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29123.88
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Data", "Certera.Data\Certera.Data.csproj", "{C36B030D-4F6E-4069-979C-8D56503A63CE}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Web", "Certera.Web\Certera.Web.csproj", "{BD161C0F-F65A-4405-B23A-E0E01692464E}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Core", "Certera.Core\Certera.Core.csproj", "{DBD869CA-5729-48C3-B88F-9532C50D0D0C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Config", "Config", "{73372307-04C0-46F7-9512-A70083492090}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Data", "Certera.Data\Certera.Data.csproj", "{9BB8F16C-76EF-48A4-B0DA-1E0A721ECC9D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Web", "Certera.Web\Certera.Web.csproj", "{E8E3F59C-AC42-493B-A29E-22E3EB3A776C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Certera.Core", "Certera.Core\Certera.Core.csproj", "{46630179-0C4B-47D7-8650-5395DB864AC0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,18 +20,22 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C36B030D-4F6E-4069-979C-8D56503A63CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C36B030D-4F6E-4069-979C-8D56503A63CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C36B030D-4F6E-4069-979C-8D56503A63CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C36B030D-4F6E-4069-979C-8D56503A63CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BD161C0F-F65A-4405-B23A-E0E01692464E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BD161C0F-F65A-4405-B23A-E0E01692464E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BD161C0F-F65A-4405-B23A-E0E01692464E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BD161C0F-F65A-4405-B23A-E0E01692464E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DBD869CA-5729-48C3-B88F-9532C50D0D0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DBD869CA-5729-48C3-B88F-9532C50D0D0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DBD869CA-5729-48C3-B88F-9532C50D0D0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DBD869CA-5729-48C3-B88F-9532C50D0D0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BB8F16C-76EF-48A4-B0DA-1E0A721ECC9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BB8F16C-76EF-48A4-B0DA-1E0A721ECC9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BB8F16C-76EF-48A4-B0DA-1E0A721ECC9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BB8F16C-76EF-48A4-B0DA-1E0A721ECC9D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8E3F59C-AC42-493B-A29E-22E3EB3A776C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8E3F59C-AC42-493B-A29E-22E3EB3A776C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8E3F59C-AC42-493B-A29E-22E3EB3A776C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8E3F59C-AC42-493B-A29E-22E3EB3A776C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46630179-0C4B-47D7-8650-5395DB864AC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{46630179-0C4B-47D7-8650-5395DB864AC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{46630179-0C4B-47D7-8650-5395DB864AC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{46630179-0C4B-47D7-8650-5395DB864AC0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

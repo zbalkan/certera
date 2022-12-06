@@ -1,32 +1,31 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
-    <DebugType>embedded</DebugType>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="Notifications\Templates\NotificationCertificateAcquisitionFailureEmail.html" />
-    <None Remove="Notifications\Templates\NotificationCertificateAcquisitionFailureSlack.json" />
-    <None Remove="Notifications\Templates\NotificationCertificateChangeEmail.html" />
-    <None Remove="Notifications\Templates\NotificationCertificateChangeSlack.json" />
-    <None Remove="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
-    <None Remove="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
-  </ItemGroup>
+    <ItemGroup>
+      <None Remove="Notifications\Templates\NotificationCertificateAcquisitionFailureEmail.html" />
+      <None Remove="Notifications\Templates\NotificationCertificateAcquisitionFailureSlack.json" />
+      <None Remove="Notifications\Templates\NotificationCertificateChangeEmail.html" />
+      <None Remove="Notifications\Templates\NotificationCertificateChangeSlack.json" />
+      <None Remove="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
+      <None Remove="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Notifications\Templates\NotificationCertificateAcquisitionFailureEmail.html" />
-    <EmbeddedResource Include="Notifications\Templates\NotificationCertificateAcquisitionFailureSlack.json" />
-    <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
-    <EmbeddedResource Include="Notifications\Templates\NotificationCertificateChangeSlack.json" />
-    <EmbeddedResource Include="Notifications\Templates\NotificationCertificateChangeEmail.html" />
-    <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="MailKit" Version="2.15.0" />
-    <PackageReference Include="Nager.PublicSuffix" Version="2.2.2" />
-    <PackageReference Include="Portable.BouncyCastle" Version="1.8.10" />
-  </ItemGroup>
-
+    <ItemGroup>
+      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateAcquisitionFailureEmail.html" />
+      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateAcquisitionFailureSlack.json" />
+      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateChangeEmail.html" />
+      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateChangeSlack.json" />
+      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
+      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="MailKit" Version="3.4.3" />
+        <PackageReference Include="Nager.PublicSuffix" Version="2.4.0" />
+        <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
+    </ItemGroup>
 </Project>

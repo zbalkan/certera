@@ -1,11 +1,11 @@
-﻿using Certera.Data;
+﻿using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Threading.Tasks;
+using Certera.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Authentication
 {
@@ -14,8 +14,8 @@ namespace Certera.Web.Authentication
         public const string AuthScheme = "CertApiKey";
         private readonly DataContext _dataContext;
 
-        public CertApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, 
-            ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, DataContext dataContext) 
+        public CertApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, DataContext dataContext)
             : base(options, logger, encoder, clock)
         {
             _dataContext = dataContext;
@@ -39,7 +39,7 @@ namespace Certera.Web.Authentication
             var identity = new ClaimsIdentity("CustomApiKey");
             identity.AddClaim(new Claim(ClaimTypes.Name, "cert"));
             identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, cert.AcmeCertificateId.ToString()));
-            
+
             var principal = new ClaimsPrincipal(identity);
 
             var ticket = new AuthenticationTicket(principal, AuthScheme);

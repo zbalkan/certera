@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.ComponentModel;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel;
 
 namespace Certera.Data
 {
@@ -16,7 +16,7 @@ namespace Certera.Data
             : base(options)
         {
         }
-        
+
         static DataContext()
         {
             // required to initialise native SQLite libraries on some platforms.
@@ -58,16 +58,28 @@ namespace Certera.Data
         public string ApiKey2 { get; set; }
     }
 
-    public class UserLogin : IdentityUserLogin<long> { }
-    public class UserRole : IdentityUserRole<long> { }
-    public class UserClaim : IdentityUserClaim<long> { }
+    public class UserLogin : IdentityUserLogin<long>
+    { }
+
+    public class UserRole : IdentityUserRole<long>
+    { }
+
+    public class UserClaim : IdentityUserClaim<long>
+    { }
 
     public class Role : IdentityRole<long>
     {
-        public Role() { }
-        public Role(string role) : base(role) { }
+        public Role()
+        { }
+
+        public Role(string role) : base(role)
+        {
+        }
     }
 
-    public class RoleClaim : IdentityRoleClaim<long> { }
-    public class UserToken : IdentityUserToken<long> { }
+    public class RoleClaim : IdentityRoleClaim<long>
+    { }
+
+    public class UserToken : IdentityUserToken<long>
+    { }
 }

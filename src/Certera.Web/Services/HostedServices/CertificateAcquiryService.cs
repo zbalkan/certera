@@ -1,13 +1,13 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Services.HostedServices
 {
@@ -19,7 +19,7 @@ namespace Certera.Web.Services.HostedServices
         private Timer _timer;
         private bool _running;
 
-        public CertificateAcquiryService(IServiceProvider services, IBackgroundTaskQueue queue, 
+        public CertificateAcquiryService(IServiceProvider services, IBackgroundTaskQueue queue,
             ILogger<CertificateAcquiryService> logger)
         {
             _services = services;
@@ -31,9 +31,9 @@ namespace Certera.Web.Services.HostedServices
         {
             _logger.LogInformation("Certificate discovery service starting.");
 
-            _timer = new Timer(TimerIntervalCallback, null,
-                TimeSpan.FromMinutes(5) /* start */,
-                TimeSpan.FromMinutes(60) /* interval */);
+            _timer = new Timer(callback: TimerIntervalCallback, state: null,
+                dueTime: TimeSpan.FromMinutes(5) /* start */,
+                period: TimeSpan.FromMinutes(60) /* interval */);
 
             return Task.CompletedTask;
         }
@@ -56,71 +56,62 @@ namespace Certera.Web.Services.HostedServices
 
         public void RunCertDiscovery()
         {
-            using (var scope = _services.CreateScope())
+            using var scope = _services.CreateScope();
+            try
             {
-                try
+                var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
+                if (!setupOptions.Value.Finished)
                 {
-                    var setupOptions = scope.ServiceProvider.GetService<IOptionsSnapshot<Setup>>();
-                    if (!setupOptions.Value.Finished)
-                    {
-                        _logger.LogInformation("Skipping execution of certificate acquiry service because setup is not complete.");
-                        return;
-                    }
-
-                    var dataContext = scope.ServiceProvider.GetService<DataContext>();
-
-                    // Get all certificates to be considered
-                    var allAcmeCerts = dataContext.GetAcmeCertificates();
-
-                    // Find all certificates that have expiration times less than x days.
-                    // or that haven't had a request yet.
-
-                    var days = dataContext.GetSetting<int>(Settings.RenewCertificateDays, 30);
-
-                    var allCertsNeedingRenewals = allAcmeCerts.Where(x => x.LatestValidAcmeOrder?.Certificate == null ||
-                        (x.LatestValidAcmeOrder?.DomainCertificate != null &&
-                         x.LatestValidAcmeOrder.DomainCertificate.ExpiresWithinDays(days)))
-                        .ToList();
-
-                    // For each cert, enqueue them to be acquired or renewed
-                    var allCertsNeedingAcquiry = allCertsNeedingRenewals
-                        .Select(x => x.AcmeCertificateId)
-                        .ToList();
-
-                    if (allCertsNeedingAcquiry.Count == 0)
-                    {
-                        _logger.LogInformation("No certs to acquire");
-                        return;
-                    }
-
-                    _logger.LogInformation($"{allCertsNeedingAcquiry.Count} certs needing acquiry");
-                    var serviceScopeFac = scope.ServiceProvider.GetService<IServiceScopeFactory>();
-
-                    foreach (var id in allCertsNeedingAcquiry)
-                    {
-                        Enqueue(id, serviceScopeFac);
-                    }
+                    _logger.LogInformation("Skipping execution of certificate acquiry service because setup is not complete.");
+                    return;
                 }
-                catch (Exception e)
+
+                var dataContext = scope.ServiceProvider.GetService<DataContext>();
+
+                // Get all certificates to be considered
+                var allAcmeCerts = dataContext.GetAcmeCertificates();
+
+                // Find all certificates that have expiration times less than x days. or that
+                // haven't had a request yet.
+
+                var days = dataContext.GetSetting(Settings.RenewCertificateDays, 30);
+
+                var allCertsNeedingRenewals = allAcmeCerts.Where(x => x.LatestValidAcmeOrder?.Certificate == null ||
+                    (x.LatestValidAcmeOrder?.DomainCertificate != null &&
+                     x.LatestValidAcmeOrder.DomainCertificate.ExpiresWithinDays(days)));
+
+                // For each cert, enqueue them to be acquired or renewed
+                var allCertsNeedingAcquiry = allCertsNeedingRenewals
+                    .Select(x => x.AcmeCertificateId)
+                    .ToList();
+
+                if (allCertsNeedingAcquiry.Count == 0)
                 {
-                    _logger.LogError(e, "Certificate discovery job error.");
+                    _logger.LogInformation("No certs to acquire");
+                    return;
                 }
+
+                _logger.LogInformation($"{allCertsNeedingAcquiry.Count} certs needing acquiry");
+                var serviceScopeFac = scope.ServiceProvider.GetService<IServiceScopeFactory>();
+
+                foreach (var id in allCertsNeedingAcquiry)
+                {
+                    Enqueue(id, serviceScopeFac);
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Certificate discovery job error.");
             }
         }
 
-        private void Enqueue(long id, IServiceScopeFactory serviceScopeFac)
-        {
-            _queue.QueueBackgroundWorkItem(async token =>
-            {
-                var localId = id;
+        private void Enqueue(long id, IServiceScopeFactory serviceScopeFac) => _queue.QueueBackgroundWorkItem(async token => {
+            var localId = id;
 
-                using (var scope = serviceScopeFac.CreateScope())
-                {
-                    var acquirer = scope.ServiceProvider.GetService<CertificateAcquirer>();
-                    await acquirer.AcquireAcmeCert(localId);
-                }
-            });
-        }
+            using var scope = serviceScopeFac.CreateScope();
+            var acquirer = scope.ServiceProvider.GetService<CertificateAcquirer>();
+            await acquirer.AcquireAcmeCert(localId);
+        });
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
@@ -132,6 +123,7 @@ namespace Certera.Web.Services.HostedServices
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -149,10 +141,8 @@ namespace Certera.Web.Services.HostedServices
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "No unmanaged resources")]
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
+        public void Dispose() => Dispose(true);
+
+        #endregion IDisposable Support
     }
 }

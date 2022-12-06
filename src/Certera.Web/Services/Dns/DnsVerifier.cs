@@ -3,10 +3,11 @@
  * Modifications:
  *   Kept overall logic, but changed things to operate without needing addtional services and frameworks used by win-acme.
 */
-using Microsoft.Extensions.Logging;
+
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Certera.Web.Services.Dns
 {
@@ -36,7 +37,7 @@ namespace Certera.Web.Services.Dns
                 }
                 else
                 {
-                    attempt += 1;
+                    attempt++;
                     if (attempt > MaxRetries)
                     {
                         _logger.LogInformation("DNS self check failed.");

@@ -1,7 +1,6 @@
-﻿using Certera.Data;
+﻿using System.Linq;
+using Certera.Data;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
 
 namespace Certera.Web.Controllers
 {
@@ -18,17 +17,14 @@ namespace Certera.Web.Controllers
         public IActionResult AcmeChallenge(string id)
         {
             var acmeReq = _dataContext.AcmeRequests.FirstOrDefault(x => x.Token == id);
-            if (acmeReq == null)
-            {
-                return NotFound();
-            }
-
-            return new ContentResult
-            {
-                StatusCode = 200,
-                ContentType = "text/plain",
-                Content = acmeReq.KeyAuthorization
-            };
+            return acmeReq == null
+                ? NotFound()
+                : new ContentResult
+                {
+                    StatusCode = 200,
+                    ContentType = "text/plain",
+                    Content = acmeReq.KeyAuthorization
+                };
         }
     }
 }

@@ -15,9 +15,6 @@ namespace Certera.Web.Pages.Setup
             _httpServerOptions = httpServerOptions;
         }
 
-        public void OnGet()
-        {
-            HttpsHost = _httpServerOptions.Value.SiteHostname;
-        }
+        public void OnGet() => HttpsHost = _httpServerOptions.Value.SiteHostname;
     }
 }

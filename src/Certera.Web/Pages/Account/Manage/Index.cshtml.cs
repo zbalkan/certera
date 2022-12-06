@@ -1,13 +1,13 @@
-﻿using Certera.Core.Notifications;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Encodings.Web;
+using System.Threading.Tasks;
+using Certera.Core.Notifications;
 using Certera.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Account.Manage
 {
@@ -19,7 +19,7 @@ namespace Certera.Web.Pages.Account.Manage
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager, 
+            SignInManager<ApplicationUser> signInManager,
             MailSender mailSender,
             IOptionsSnapshot<MailSenderInfo> mailInfo)
         {
@@ -127,7 +127,6 @@ namespace Certera.Web.Pages.Account.Manage
             {
                 return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
             }
-
 
             var userId = await _userManager.GetUserIdAsync(user);
             var email = await _userManager.GetEmailAsync(user);

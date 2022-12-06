@@ -1,7 +1,7 @@
-﻿using Certera.Data;
+﻿using System.Collections.Generic;
+using Certera.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Collections.Generic;
 
 namespace Certera.Web.Pages.Components.ChallengeSelect
 {
@@ -14,7 +14,7 @@ namespace Certera.Web.Pages.Components.ChallengeSelect
             _context = context;
         }
 
-        public IViewComponentResult Invoke(string name, string selected = null)
+        public IViewComponentResult Invoke(string name, string? selected = null)
         {
             var setScript = _context.GetSetting<string>(Data.Settings.Dns01SetScript, null);
             var cleanupScript = _context.GetSetting<string>(Data.Settings.Dns01CleanupScript, null);

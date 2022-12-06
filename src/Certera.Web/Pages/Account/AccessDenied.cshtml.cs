@@ -6,8 +6,6 @@ namespace Certera.Web.Pages.Account
     {
         public void OnGet()
         {
-
         }
     }
 }
-

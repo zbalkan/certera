@@ -1,10 +1,10 @@
-﻿using Certera.Data;
+﻿using System.Threading.Tasks;
+using Certera.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Account
 {

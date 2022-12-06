@@ -1,7 +1,5 @@
 ﻿using MailKit.Net.Smtp;
 using MimeKit;
-using System;
-using System.Linq;
 
 namespace Certera.Core.Notifications
 {
@@ -52,6 +50,7 @@ namespace Certera.Core.Notifications
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -67,10 +66,8 @@ namespace Certera.Core.Notifications
             }
         }
 
-        public void Dispose()
-        {
-            Dispose(true);
-        }
-        #endregion
+        public void Dispose() => Dispose(true);
+
+        #endregion IDisposable Support
     }
 }

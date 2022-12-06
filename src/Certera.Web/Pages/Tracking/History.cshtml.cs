@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 using Certera.Data;
 using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -36,11 +33,7 @@ namespace Certera.Web.Pages.Tracking
                 .ThenInclude(x => x.DomainCertificate)
                 .FirstOrDefault(x => x.DomainId == id.Value);
 
-            if (Domain == null)
-            {
-                return NotFound();
-            }
-            return Page();
+            return Domain == null ? NotFound() : Page();
         }
     }
 }

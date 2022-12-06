@@ -1,8 +1,8 @@
-﻿using Certes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Certes;
 
 namespace Certera.Data.Models
 {
@@ -18,7 +18,7 @@ namespace Certera.Data.Models
         public string Description { get; set; }
 
         /// <summary>
-        /// PEM encoded.
+        ///     PEM encoded.
         /// </summary>
         [Display(Name = "PEM Encoded Key")]
         public string RawData { get; set; }
@@ -43,41 +43,38 @@ namespace Certera.Data.Models
         public virtual ICollection<AcmeCertificate> AcmeCertificates { get; set; } = new List<AcmeCertificate>();
 
         private IKey _ikey;
-        public IKey IKey
-        {
-            get
-            {
+
+        public IKey? IKey {
+            get {
                 if (string.IsNullOrWhiteSpace(RawData))
                 {
                     return null;
                 }
-                if (_ikey == null)
-                {
-                    _ikey = KeyFactory.FromPem(RawData);
-                }
+                _ikey ??= KeyFactory.FromPem(RawData);
                 return _ikey;
             }
         }
 
-        public string Algorithm
-        {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(RawData))
+        public string? Algorithm {
+            get {
+                if (string.IsNullOrWhiteSpace(RawData) || IKey == null)
                 {
                     return null;
                 }
-                var alg = IKey.Algorithm;
-                switch (alg)
+                switch (IKey.Algorithm)
                 {
                     case KeyAlgorithm.RS256:
                         return "RSA-PKCS1-v1_5 (SHA-256)";
+
                     case KeyAlgorithm.ES256:
                         return "ECDSA P-256 (SHA-256)";
+
                     case KeyAlgorithm.ES384:
                         return "ECDSA P-384 (SHA-384)";
+
                     case KeyAlgorithm.ES512:
                         return "ECDSA P-521 (SHA-512)";
+
                     default:
                         return "Unknown";
                 }

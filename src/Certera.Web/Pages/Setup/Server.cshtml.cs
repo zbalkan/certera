@@ -1,15 +1,14 @@
-﻿using Certera.Data;
+﻿using System;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Options;
 using Certera.Web.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Setup
 {
@@ -56,8 +55,7 @@ namespace Certera.Web.Pages.Setup
                 return Page();
             }
 
-            _httpServerOptions.Update(x =>
-            {
+            _httpServerOptions.Update(x => {
                 x.SiteHostname = Setup.SiteHostname;
                 x.HttpsPort = Setup.HttpsPort;
             });
@@ -72,11 +70,8 @@ namespace Certera.Web.Pages.Setup
             if (acmeCert == null)
             {
                 var certKey = await _dataContext.Keys.FirstOrDefaultAsync(x => x.Name == Setup.SiteHostname);
-                if (certKey == null)
-                {
-                    certKey = _keyGenerator.Generate(Setup.SiteHostname, Certes.KeyAlgorithm.RS256, 
+                certKey ??= _keyGenerator.Generate(Setup.SiteHostname, Certes.KeyAlgorithm.RS256,
                         "certera certificate (this site)");
-                }
 
                 acmeCert = new Data.Models.AcmeCertificate
                 {

@@ -1,11 +1,11 @@
-﻿using Certera.Data;
+﻿using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Threading.Tasks;
+using Certera.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Authentication
 {
@@ -14,8 +14,8 @@ namespace Certera.Web.Authentication
         public const string AuthScheme = "KeyApiKey";
         private readonly DataContext _dataContext;
 
-        public KeyApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, 
-            ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, DataContext dataContext) 
+        public KeyApiKeyAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock, DataContext dataContext)
             : base(options, logger, encoder, clock)
         {
             _dataContext = dataContext;
@@ -30,7 +30,7 @@ namespace Certera.Web.Authentication
 
             var apiKey = Request.Headers["apikey"][0];
             var key = await _dataContext.Keys.FirstOrDefaultAsync(x => x.ApiKey1 == apiKey || x.ApiKey2 == apiKey);
-            
+
             if (key == null)
             {
                 return AuthenticateResult.Fail("Invalid apikey");

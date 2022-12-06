@@ -1,25 +1,18 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace Certera.Core.Extensions
+﻿namespace Certera.Core.Extensions
 {
     public static class LinqExtensions
     {
-        public static bool IsNullOrEmpty<T>(this IEnumerable<T> enumerable)
-        {
-            return enumerable == null || !enumerable.Any();
-        }
+        public static bool IsNullOrEmpty<T>(this IEnumerable<T> enumerable) => enumerable?.Any() != true;
 
         public static IEnumerable<IEnumerable<TSource>> Batch<TSource>(
                   this IEnumerable<TSource> source, int size)
         {
-            TSource[] bucket = null;
+            TSource[]? bucket = null;
             var count = 0;
 
             foreach (var item in source)
             {
-                if (bucket == null)
-                    bucket = new TSource[size];
+                bucket ??= new TSource[size];
 
                 bucket[count++] = item;
                 if (count != size)

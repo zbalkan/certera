@@ -1,22 +1,23 @@
-﻿using Certera.Data.Models;
+﻿using System.Threading.Tasks;
+using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Acme.Accounts
 {
     public class DeleteModel : PageModel
     {
-        private readonly Certera.Data.DataContext _context;
+        private readonly Data.DataContext _context;
 
-        public DeleteModel(Certera.Data.DataContext context)
+        public DeleteModel(Data.DataContext context)
         {
             _context = context;
         }
 
         [BindProperty]
         public AcmeAccount AcmeAccount { get; set; }
+
         [TempData]
         public string StatusMessage { get; set; }
 
@@ -31,11 +32,7 @@ namespace Certera.Web.Pages.Acme.Accounts
                 .Include(a => a.ApplicationUser)
                 .Include(a => a.Key).FirstOrDefaultAsync(m => m.AcmeAccountId == id);
 
-            if (AcmeAccount == null)
-            {
-                return NotFound();
-            }
-            return Page();
+            return AcmeAccount == null ? NotFound() : Page();
         }
 
         public async Task<IActionResult> OnPostAsync(long? id)
@@ -44,7 +41,7 @@ namespace Certera.Web.Pages.Acme.Accounts
             {
                 return NotFound();
             }
-            
+
             AcmeAccount = await _context.AcmeAccounts
                 .Include(a => a.ApplicationUser)
                 .Include(a => a.Key).FirstOrDefaultAsync(m => m.AcmeAccountId == id);

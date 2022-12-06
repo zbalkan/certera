@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Certera.Data;
 using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +15,9 @@ namespace Certera.Web.Pages.Tracking
             _dataContext = dataContext;
         }
 
-
         [BindProperty]
         public DomainCertificate DomainCertificate { get; set; }
+
         [TempData]
         public string StatusMessage { get; set; }
 
@@ -32,12 +29,7 @@ namespace Certera.Web.Pages.Tracking
             }
 
             DomainCertificate = await _dataContext.DomainCertificates.FindAsync(id);
-            if (DomainCertificate == null)
-            {
-                return NotFound();
-            }
-
-            return Page();
+            return DomainCertificate == null ? NotFound() : Page();
         }
 
         public async Task<IActionResult> OnPostAsync(long? id)

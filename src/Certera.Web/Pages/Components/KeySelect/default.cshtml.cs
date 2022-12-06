@@ -1,7 +1,7 @@
-﻿using Certera.Data;
+﻿using System.Collections.Generic;
+using Certera.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Collections.Generic;
 
 namespace Certera.Web.Pages.Components.KeySelect
 {

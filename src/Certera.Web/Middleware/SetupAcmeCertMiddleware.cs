@@ -1,11 +1,11 @@
-﻿using Certera.Data;
+﻿using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.AcmeProviders;
 using Certera.Web.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Middleware
 {
@@ -24,7 +24,7 @@ namespace Certera.Web.Middleware
         }
         a {
             color: white;
-        } 
+        }
         a:hover {
       	    color: gray;
         }
@@ -68,33 +68,33 @@ namespace Certera.Web.Middleware
             var acmeCert = await dataContext.AcmeCertificates
                         .Include(x => x.Key)
                         .Include(x => x.AcmeAccount)
-                        .ThenInclude(x => x.Key)                        
+                        .ThenInclude(x => x.Key)
                         .FirstAsync(x => x.Subject == host);
 
-            await httpContext.Response.WriteAsync($@"
+            await httpContext.Response.WriteAsync(@"
         Initializing ACME client and ensuring account... <br />");
             certes.Initialize(acmeCert);
 
             // Begin the order
-            await httpContext.Response.WriteAsync($@"
+            await httpContext.Response.WriteAsync(@"
         Creating order... <br />");
             var acmeOrder = await certes.BeginOrder();
             dataContext.AcmeOrders.Add(acmeOrder);
             dataContext.SaveChanges();
 
             // Validate (i.e. ask ACME to check via HTTP-01 or DNS-01)
-            await httpContext.Response.WriteAsync($@"
+            await httpContext.Response.WriteAsync(@"
         Requesting ACME validation... <br />");
             await certes.Validate();
             dataContext.SaveChanges();
 
             // Complete the order (i.e. obtain the certifiate)
-            await httpContext.Response.WriteAsync($@"
+            await httpContext.Response.WriteAsync(@"
         Completing order... (this can take up to 30 seconds)<br />");
             await certes.Complete();
 
             // Remove old ACME requests because they're irrelevant
-            await httpContext.Response.WriteAsync($@"
+            await httpContext.Response.WriteAsync(@"
         Cleaning up... <br />");
             acmeOrder.AcmeRequests.Clear();
             dataContext.SaveChanges();
@@ -102,7 +102,7 @@ namespace Certera.Web.Middleware
             await httpContext.Response.WriteAsync($@"
         Done. Status: {acmeOrder.Status}... <br />");
 
-            bool restart = false;
+            var restart = false;
             if (!acmeOrder.Completed)
             {
                 var errors = acmeOrder.Errors.Replace("\r\n", "<br />");
@@ -114,7 +114,7 @@ namespace Certera.Web.Middleware
                 restart = true;
                 await httpContext.Response.WriteAsync(@"
         <br />
-        Setup finished successfully! 
+        Setup finished successfully!
         <br />
         <hr />
         <br />
@@ -123,7 +123,7 @@ namespace Certera.Web.Middleware
         <script>
             var restartFinished = setInterval(checkLoaded, 5000);
             var tries = 5;
-        
+
             function checkLoaded() {
                 var xhttp = new XMLHttpRequest();
                 xhttp.onreadystatechange = function() {
@@ -138,7 +138,6 @@ namespace Certera.Web.Middleware
         <noscript>
             Please wait 10 seconds for server to restart. Then, <a href=""/"">click here to continue</a>.
         </noscript>");
-
             }
 
             await httpContext.Response.WriteAsync(@"

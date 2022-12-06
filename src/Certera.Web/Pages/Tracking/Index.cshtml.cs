@@ -1,13 +1,12 @@
-﻿using Certera.Data;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using Certera.Data;
 using Certera.Data.Views;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Tracking
 {
@@ -33,7 +32,7 @@ namespace Certera.Web.Pages.Tracking
                 sort = sort.ToLower();
             }
 
-            Expression<Func<TrackedCertificate, object>> sortExpression = null;
+            Expression<Func<TrackedCertificate, object>>? sortExpression = null;
             Expression<Func<TrackedCertificate, object>> sortThenByExpression = x => x.Subject;
 
             switch (sort)
@@ -41,18 +40,23 @@ namespace Certera.Web.Pages.Tracking
                 case "expiration":
                     sortExpression = x => x.DaysRemaining;
                     break;
+
                 case "subject":
                     sortExpression = x => x.Subject;
                     break;
+
                 case "issuer":
                     sortExpression = x => x.Issuer;
                     break;
+
                 case "domain":
                     sortExpression = x => x.RegistrableDomain;
                     break;
+
                 case "source":
                     sortExpression = x => x.Source;
                     break;
+
                 case "order":
                 default:
                     sortExpression = x => x.Order;

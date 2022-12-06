@@ -19,19 +19,16 @@ namespace Certera.Web.Pages.Certificates
         [TempData]
         public string StatusMessage { get; set; }
 
-        public IActionResult OnGet(long? id = null, string returnUrl = null)
+        public IActionResult OnGet(long? id = null, string? returnUrl = null)
         {
             if (id != null)
             {
-                _queue.QueueBackgroundWorkItem(async token =>
-                {
+                _queue.QueueBackgroundWorkItem(async token => {
                     var localId = id.Value;
 
-                    using (var scope = _serviceScopeFactory.CreateScope())
-                    {
-                        var acquirer = scope.ServiceProvider.GetService<CertificateAcquirer>();
-                        await acquirer.AcquireAcmeCert(localId, userRequested: true);
-                    }
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var acquirer = scope.ServiceProvider.GetService<CertificateAcquirer>();
+                    await acquirer.AcquireAcmeCert(localId, userRequested: true);
                 });
                 StatusMessage = "Certificate requested";
             }

@@ -1,37 +1,25 @@
-﻿using System;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Certera.Core.Extensions
 {
     public static class X509Certificate2Extensions
     {
-        public static bool ExpiresWithinDays(this X509Certificate2 cert, int days)
-        {
-            return DateTime.Now.Date >= cert.NotAfter.Subtract(TimeSpan.FromDays(days)).Date;
-        }
+        public static bool ExpiresWithinDays(this X509Certificate2 cert, int days) => DateTime.Now.Date >= cert.NotAfter.Subtract(TimeSpan.FromDays(days)).Date;
 
         public static string PublicKeyPinningHash(this X509Certificate2 cert)
         {
             // Get the SubjectPublicKeyInfo member of the certificate
-            byte[] subjectPublicKeyInfo = GetSubjectPublicKeyInfoRaw(cert);
+            var subjectPublicKeyInfo = GetSubjectPublicKeyInfoRaw(cert);
 
             // Take the SHA2-256 hash of the DER ASN.1 encoded value
-            byte[] digest;
-            using (var sha2 = new SHA256Managed())
-            {
-                digest = sha2.ComputeHash(subjectPublicKeyInfo);
-            }
-
-            //Convert hash to base64
-            string hash = Convert.ToBase64String(digest);
-
-            return hash;
+            // And convert hash to base64
+            return Convert.ToBase64String(SHA256.HashData(subjectPublicKeyInfo));
         }
 
-        static byte[] GetSubjectPublicKeyInfoRaw(X509Certificate2 x509Cert)
+        private static byte[] GetSubjectPublicKeyInfoRaw(X509Certificate2 x509Cert)
         {
-            byte[] rawCert = x509Cert.GetRawCertData();
+            var rawCert = x509Cert.GetRawCertData();
 
             /*
              Certificate is, by definition:
@@ -39,7 +27,7 @@ namespace Certera.Core.Extensions
                 Certificate  ::=  SEQUENCE  {
                     tbsCertificate       TBSCertificate,
                     signatureAlgorithm   AlgorithmIdentifier,
-                    signatureValue       BIT STRING  
+                    signatureValue       BIT STRING
                 }
 
                TBSCertificate  ::=  SEQUENCE  {
@@ -57,22 +45,21 @@ namespace Certera.Core.Extensions
 
             So we walk to ASN.1 DER tree in order to drill down to the SubjectPublicKeyInfo item
             */
-            byte[] list = AsnNext(ref rawCert, true); //unwrap certificate sequence
-            byte[] tbsCertificate = AsnNext(ref list, false); //get next item; which is tbsCertificate
+            var list = AsnNext(ref rawCert, true); //unwrap certificate sequence
+            var tbsCertificate = AsnNext(ref list, false); //get next item; which is tbsCertificate
             list = AsnNext(ref tbsCertificate, true); //unwap tbsCertificate sequence
 
-            byte[] version = AsnNext(ref list, false); //tbsCertificate.Version
-            byte[] serialNumber = AsnNext(ref list, false); //tbsCertificate.SerialNumber
-            byte[] signature = AsnNext(ref list, false); //tbsCertificate.Signature
-            byte[] issuer = AsnNext(ref list, false); //tbsCertificate.Issuer
-            byte[] validity = AsnNext(ref list, false); //tbsCertificate.Validity
-            byte[] subject = AsnNext(ref list, false); //tbsCertificate.Subject        
-            byte[] subjectPublicKeyInfo = AsnNext(ref list, false); //tbsCertificate.SubjectPublicKeyInfo        
-
-            return subjectPublicKeyInfo;
+            var version = AsnNext(ref list, false); //tbsCertificate.Version
+            var serialNumber = AsnNext(ref list, false); //tbsCertificate.SerialNumber
+            var signature = AsnNext(ref list, false); //tbsCertificate.Signature
+            var issuer = AsnNext(ref list, false); //tbsCertificate.Issuer
+            var validity = AsnNext(ref list, false); //tbsCertificate.Validity
+            var subject = AsnNext(ref list, false); //tbsCertificate.Subject
+                                                    //tbsCertificate.SubjectPublicKeyInfo
+            return AsnNext(ref list, false);
         }
 
-        static byte[] AsnNext(ref byte[] buffer, bool unwrap)
+        private static byte[] AsnNext(ref byte[] buffer, bool unwrap)
         {
             //Public Domain: No attribution required
             byte[] result;
@@ -80,27 +67,27 @@ namespace Certera.Core.Extensions
             if (buffer.Length < 2)
             {
                 result = buffer;
-                buffer = new byte[0];
+                buffer = Array.Empty<byte>();
                 return result;
             }
 
-            int index = 0;
-            byte entityType = buffer[index];
-            index += 1;
+            var index = 0;
+            var entityType = buffer[index];
+            index++;
 
             int length = buffer[index];
-            index += 1;
+            index++;
 
-            int lengthBytes = 1;
+            var lengthBytes = 1;
             if (length >= 0x80)
             {
                 lengthBytes = length & 0x0F; //low nibble is number of length bytes to follow
                 length = 0;
 
-                for (int i = 0; i < lengthBytes; i++)
+                for (var i = 0; i < lengthBytes; i++)
                 {
                     length = (length << 8) + (int)buffer[2 + i];
-                    index += 1;
+                    index++;
                 }
                 lengthBytes++;
             }
@@ -120,7 +107,7 @@ namespace Certera.Core.Extensions
             result = new byte[copyLength];
             Array.Copy(buffer, copyStart, result, 0, copyLength);
 
-            byte[] remaining = new byte[buffer.Length - (copyStart + copyLength)];
+            var remaining = new byte[buffer.Length - (copyStart + copyLength)];
             if (remaining.Length > 0)
             {
                 Array.Copy(buffer, copyStart + copyLength, remaining, 0, remaining.Length);

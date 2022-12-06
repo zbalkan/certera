@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Connections;
+﻿using System.Net;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http;
-using System.Net;
 
 namespace Certera.Web.Extensions
 {
@@ -16,8 +16,7 @@ namespace Certera.Web.Extensions
                 return true;
             }
 
-            // we have a remote address set up
-            // is local is same as remote, then we are local
+            // we have a remote address set up is local is same as remote, then we are local
             if (conn.LocalIpAddress.IsSet())
             {
                 return conn.RemoteIpAddress.Equals(conn.LocalIpAddress);
@@ -30,38 +29,21 @@ namespace Certera.Web.Extensions
         public static bool IsLocal(this ConnectionContext ctx)
         {
             var remoteIp = (ctx.RemoteEndPoint as IPEndPoint)?.Address;
-            if (remoteIp == null || !remoteIp.IsSet())
+            if (remoteIp?.IsSet() != true)
             {
                 return true;
             }
 
             var localIp = (ctx.LocalEndPoint as IPEndPoint)?.Address;
-            if (localIp != null && localIp.IsSet())
-            {
-                return remoteIp.Equals(localIp);
-            }
-
-            return remoteIp.IsLoopback();
+            return localIp?.IsSet() == true ? remoteIp.Equals(localIp) : remoteIp.IsLoopback();
         }
 
-        public static bool IsLocal(this HttpContext ctx)
-        {
-            return ctx.Connection.IsLocal();
-        }
+        public static bool IsLocal(this HttpContext ctx) => ctx.Connection.IsLocal();
 
-        public static bool IsLocal(this HttpRequest req)
-        {
-            return req.HttpContext.IsLocal();
-        }
+        public static bool IsLocal(this HttpRequest req) => req.HttpContext.IsLocal();
 
-        public static bool IsSet(this IPAddress address)
-        {
-            return address != null && address.ToString() != NullIPv6;
-        }
+        public static bool IsSet(this IPAddress address) => address != null && address.ToString() != NullIPv6;
 
-        public static bool IsLoopback(this IPAddress address)
-        {
-            return IPAddress.IsLoopback(address);
-        }
+        public static bool IsLoopback(this IPAddress address) => IPAddress.IsLoopback(address);
     }
 }

@@ -1,10 +1,10 @@
-﻿using Certera.Data;
+﻿using System.Linq;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Data.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Keys
 {
@@ -19,6 +19,7 @@ namespace Certera.Web.Pages.Keys
 
         [BindProperty]
         public Key Key { get; set; }
+
         [TempData]
         public string StatusMessage { get; set; }
 
@@ -31,11 +32,7 @@ namespace Certera.Web.Pages.Keys
 
             Key = await _context.Keys.FirstOrDefaultAsync(m => m.KeyId == id);
 
-            if (Key == null)
-            {
-                return NotFound();
-            }
-            return Page();
+            return Key == null ? NotFound() : Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
@@ -93,6 +90,7 @@ namespace Certera.Web.Pages.Keys
                 case "apikey1":
                     Key.ApiKey1 = ApiKeyGenerator.CreateApiKey();
                     break;
+
                 case "apikey2":
                     Key.ApiKey2 = ApiKeyGenerator.CreateApiKey();
                     break;
@@ -103,9 +101,6 @@ namespace Certera.Web.Pages.Keys
             return Page();
         }
 
-        private bool KeyExists(long id)
-        {
-            return _context.Keys.Any(e => e.KeyId == id);
-        }
+        private bool KeyExists(long id) => _context.Keys.Any(e => e.KeyId == id);
     }
 }

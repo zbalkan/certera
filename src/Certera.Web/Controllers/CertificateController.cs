@@ -1,12 +1,10 @@
-﻿using Certes;
-using Certes.Acme;
+﻿using System;
+using System.Security.Claims;
 using Certera.Data;
 using Certera.Web.Authentication;
+using Certes;
+using Certes.Acme;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Threading.Tasks;
-using System.Security.Claims;
 
 namespace Certera.Web.Controllers
 {
@@ -64,6 +62,7 @@ namespace Certera.Web.Controllers
                         ContentType = "text/plain",
                         StatusCode = 200
                     };
+
                 case "pem":
                 default:
                     var content = chain ? acmeCert.LatestValidAcmeOrder.RawDataPem :

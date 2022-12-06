@@ -1,4 +1,6 @@
-﻿using Certera.Core.Helpers;
+﻿using System;
+using System.Threading.Tasks;
+using Certera.Core.Helpers;
 using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.AcmeProviders;
@@ -7,8 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Certificates
 {
@@ -47,12 +47,7 @@ namespace Certera.Web.Pages.Certificates
                 .ThenInclude(o => o.DomainCertificate)
                 .FirstOrDefaultAsync(m => m.AcmeCertificateId == id);
 
-            if (AcmeCertificate == null)
-            {
-                return NotFound();
-            }
-
-            return Page();
+            return AcmeCertificate == null ? NotFound() : Page();
         }
 
         public async Task<IActionResult> OnPostAsync(long id, string action, string key)
@@ -69,7 +64,7 @@ namespace Certera.Web.Pages.Certificates
                 return NotFound();
             }
 
-            switch(action.ToLower())
+            switch (action.ToLower())
             {
                 case "keychange":
                     switch (key)
@@ -77,6 +72,7 @@ namespace Certera.Web.Pages.Certificates
                         case "apikey1":
                             AcmeCertificate.ApiKey1 = ApiKeyGenerator.CreateApiKey();
                             break;
+
                         case "apikey2":
                             AcmeCertificate.ApiKey2 = ApiKeyGenerator.CreateApiKey();
                             break;
@@ -84,6 +80,7 @@ namespace Certera.Web.Pages.Certificates
 
                     await _context.SaveChangesAsync();
                     break;
+
                 case "ocspcheck":
                     try
                     {
@@ -105,6 +102,7 @@ namespace Certera.Web.Pages.Certificates
                         OcspStatus = "Error";
                     }
                     break;
+
                 case "revoke":
                     {
                         var order = AcmeCertificate.GetLatestValidAcmeOrder();

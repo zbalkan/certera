@@ -1,10 +1,10 @@
-﻿using Certera.Data;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
+using Certera.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
-using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Account.Manage
 {
@@ -58,12 +58,7 @@ namespace Certera.Web.Pages.Account.Manage
             }
 
             var hasPassword = await _userManager.HasPasswordAsync(user);
-            if (!hasPassword)
-            {
-                return RedirectToPage("./SetPassword");
-            }
-
-            return Page();
+            return !hasPassword ? RedirectToPage("./SetPassword") : Page();
         }
 
         public async Task<IActionResult> OnPostAsync()

@@ -1,12 +1,11 @@
-﻿using Certera.Web.Extensions;
+﻿using System;
+using System.Net;
+using System.Threading.Tasks;
+using Certera.Web.Extensions;
 using Certera.Web.Options;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Middleware
 {
@@ -28,9 +27,8 @@ namespace Certera.Web.Middleware
 
         public async Task Invoke(HttpContext context)
         {
-            // Always allow local connections. 
-            // Also allow access to the acme-challenge endpoint since Let's Encrypt
-            // does not publish their IP addresses.
+            // Always allow local connections. Also allow access to the acme-challenge endpoint
+            // since Let's Encrypt does not publish their IP addresses.
             if (context.Request.IsLocal() ||
                 context.Request.Path.StartsWithSegments("/.well-known/acme-challenge") ||
                 context.Request.Path.StartsWithSegments("/api/test"))
@@ -39,9 +37,9 @@ namespace Certera.Web.Middleware
                 return;
             }
 
-            bool isApi = context.Request.Path.StartsWithSegments("/api");
+            var isApi = context.Request.Path.StartsWithSegments("/api");
 
-            string ipList = isApi
+            var ipList = isApi
                 ? _allowedIPs.CurrentValue.API
                 : _allowedIPs.CurrentValue.AdminUI;
 
@@ -60,7 +58,7 @@ namespace Certera.Web.Middleware
                 remoteIp = remoteIp.MapToIPv4();
             }
 
-            var ips = ipList.Split(',',';', StringSplitOptions.RemoveEmptyEntries);
+            var ips = ipList.Split(',', ';', StringSplitOptions.RemoveEmptyEntries);
 
             var isBadIP = true;
 

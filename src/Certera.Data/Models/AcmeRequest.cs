@@ -12,8 +12,7 @@ namespace Certera.Data.Models
         // for: /.well-known/acme-challenge/abcdefg
         public string Token { get; set; }
 
-        // The contents of the challenge file
-        // e.g. abcdefg.tuvwxyz
+        // The contents of the challenge file e.g. abcdefg.tuvwxyz
         public string KeyAuthorization { get; set; }
 
         [NotMapped]

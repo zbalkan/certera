@@ -1,9 +1,8 @@
-﻿using Certera.Data;
+﻿using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.EntityFrameworkCore;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Tracking
 {
@@ -21,7 +20,7 @@ namespace Certera.Web.Pages.Tracking
         [TempData]
         public string StatusMessage { get; set; }
 
-        public async Task<IActionResult> OnGet(long? id = null, string returnUrl = null)
+        public async Task<IActionResult> OnGet(long? id = null, string? returnUrl = null)
         {
             if (id != null)
             {
@@ -44,7 +43,7 @@ namespace Certera.Web.Pages.Tracking
                 _domainScanSvc.ScanAll();
                 StatusMessage = "Domain scan queued";
             }
-            returnUrl = returnUrl ?? Url.Page("./Index");
+            returnUrl ??= Url.Page("./Index");
             return new RedirectResult(returnUrl);
         }
     }

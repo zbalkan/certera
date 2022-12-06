@@ -1,4 +1,8 @@
-﻿using Certera.Data;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Certera.Data;
 using Certera.Data.Models;
 using Certera.Web.AcmeProviders;
 using Certera.Web.Extensions;
@@ -12,10 +16,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Certera.Web.Pages.Setup
 {
@@ -51,10 +51,8 @@ namespace Certera.Web.Pages.Setup
 
         private static string _acmeTos;
 
-        public string TermsOfService
-        {
-            get
-            {
+        public string TermsOfService {
+            get {
                 return _acmeTos;
             }
         }
@@ -101,33 +99,29 @@ namespace Certera.Web.Pages.Setup
             return RedirectToPage("./Server");
         }
 
-        private async Task<Data.Models.AcmeAccount> CreateOrUpdateAcmeAccount(ApplicationUser user, Key key, bool staging)
+        private async Task<AcmeAccount> CreateOrUpdateAcmeAccount(ApplicationUser user, Key key, bool staging)
         {
-            // Setup.AcmeContactEmail explicitly specified.
-            // Check for existing account, create new if not exists, use key if one specified or
-            // create and store new key.
-            Data.Models.AcmeAccount acmeAccount = null;
+            // Setup.AcmeContactEmail explicitly specified. Check for existing account, create new
+            // if not exists, use key if one specified or create and store new key.
+            AcmeAccount? acmeAccount = null;
 
             if (!string.IsNullOrWhiteSpace(Setup.AcmeContactEmail))
             {
                 acmeAccount = await _dataContext.AcmeAccounts
-                    .FirstOrDefaultAsync(x => x.AcmeContactEmail == Setup.AcmeContactEmail && 
+                    .FirstOrDefaultAsync(x => x.AcmeContactEmail == Setup.AcmeContactEmail &&
                         x.IsAcmeStaging == staging);
             }
 
             // Try to locate using user's email
-            if (acmeAccount == null)
-            {
-                acmeAccount = await _dataContext.AcmeAccounts
+            acmeAccount ??= await _dataContext.AcmeAccounts
                     .FirstOrDefaultAsync(x => x.AcmeContactEmail == user.Email &&
                         x.IsAcmeStaging == staging);
-            }
 
             // No account exists for user, create new ACME account
             if (acmeAccount == null)
             {
                 var emailToUse = Setup.AcmeContactEmail ?? user.Email;
-                acmeAccount = new Data.Models.AcmeAccount
+                acmeAccount = new AcmeAccount
                 {
                     AcmeAcceptTos = true,
                     AcmeContactEmail = emailToUse,
@@ -141,7 +135,7 @@ namespace Certera.Web.Pages.Setup
             return acmeAccount;
         }
 
-        private async Task EnsureLetsEncryptAccountExists(Data.Models.AcmeAccount acmeAccount, bool staging)
+        private async Task EnsureLetsEncryptAccountExists(AcmeAccount acmeAccount, bool staging)
         {
             var accountExists = await _certesAcmeProvider.AccountExists(acmeAccount.Key.RawData, staging);
 
@@ -154,7 +148,7 @@ namespace Certera.Web.Pages.Setup
                 _logger.LogDebug("ACME account does not exists, creating account using existing key.");
 
                 // Create account with existing key
-                await _certesAcmeProvider.CreateAccount(acmeAccount.AcmeContactEmail, 
+                await _certesAcmeProvider.CreateAccount(acmeAccount.AcmeContactEmail,
                     acmeAccount.Key.RawData, staging);
             }
         }
@@ -164,7 +158,7 @@ namespace Certera.Web.Pages.Setup
             var stg = staging ? "-staging" : string.Empty;
             var keyName = $"user-{user.Id}-acme-account{stg}";
             var key = await _dataContext.Keys.FirstOrDefaultAsync(x => x.Name == keyName);
-            
+
             if (key == null)
             {
                 var desc = $"Let's Encrypt {(staging ? "Staging " : string.Empty)}Account Key";

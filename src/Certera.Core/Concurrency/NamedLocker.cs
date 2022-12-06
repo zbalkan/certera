@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Certera.Core.Concurrency
 {
@@ -19,7 +18,7 @@ namespace Certera.Core.Concurrency
 
         public static void RunWithLock(string key, Action a)
         {
-            lock(GetLock(key))
+            lock (GetLock(key))
             {
                 a();
             }

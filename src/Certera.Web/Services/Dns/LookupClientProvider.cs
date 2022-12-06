@@ -3,16 +3,17 @@
  * Modifications:
  *   Kept overall logic, but changed things to operate without needing addtional services and frameworks used by win-acme.
 */
-using Certera.Core.Helpers;
-using Certera.Web.Options;
-using DnsClient;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Certera.Core.Helpers;
+using Certera.Web.Options;
+using DnsClient;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Certera.Web.Services.Dns
 {
@@ -33,8 +34,7 @@ namespace Certera.Web.Services.Dns
             _lookupClients = new Dictionary<string, LookupClientWrapper>();
             _defaultNs = new List<IPAddress>();
 
-            var ips = _dnsOptions.Value?.IPs ?? new[] { "1.1.1.1", "8.8.8.8", "4.4.4.4" };
-            foreach (var ip in ips)
+            foreach (var ip in _dnsOptions.Value?.IPs ?? new[] { "1.1.1.1", "8.8.8.8", "4.4.4.4" })
             {
                 if (IPAddress.TryParse(ip, out var addr))
                 {
@@ -44,12 +44,11 @@ namespace Certera.Web.Services.Dns
         }
 
         /// <summary>
-        /// Produce a new LookupClientWrapper or take a previously
-        /// cached one from the dictionary
+        ///     Produce a new LookupClientWrapper or take a previously cached one from the dictionary
         /// </summary>
-        /// <param name="ip"></param>
-        /// <returns></returns>
-        private LookupClientWrapper Produce(IPAddress ip)
+        /// <param name="ip"> </param>
+        /// <returns> </returns>
+        private LookupClientWrapper? Produce(IPAddress ip)
         {
             if (ip == null)
             {
@@ -68,38 +67,35 @@ namespace Certera.Web.Services.Dns
         }
 
         private List<LookupClientWrapper> _lookupClientWrappers;
+
         /// <summary>
-        /// Get clients for all default DNS servers
+        ///     Get clients for all default DNS servers
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public List<LookupClientWrapper> GetDefaultClients()
         {
-            if (_lookupClientWrappers == null)
-            {
-                _lookupClientWrappers = _defaultNs
-                    .Select(x => Produce(x))
+            _lookupClientWrappers ??= _defaultNs
+                    .Select(Produce)
                     .Where(x => x != null)
                     .ToList();
-            }
             return _lookupClientWrappers;
         }
 
         /// <summary>
-        /// The default <see cref="LookupClient"/>. Internally uses your local network DNS.
+        ///     The default <see cref="LookupClient" />. Internally uses your local network DNS.
         /// </summary>
         public LookupClientWrapper GetDefaultClient(int round)
         {
             var index = round % GetDefaultClients().Count;
-            var ret = GetDefaultClients().ElementAt(index);
-            return ret;
+            return GetDefaultClients().ElementAt(index);
         }
 
         /// <summary>
-        /// Get cached list of authoritative name server ip addresses
+        ///     Get cached list of authoritative name server ip addresses
         /// </summary>
-        /// <param name="domainName"></param>
-        /// <param name="round"></param>
-        /// <returns></returns>
+        /// <param name="domainName"> </param>
+        /// <param name="round"> </param>
+        /// <returns> </returns>
         private async Task<IEnumerable<IPAddress>> GetAuthoritativeNameServersForDomain(string domainName, int round)
         {
             var key = domainName.ToLower().TrimEnd('.');
@@ -110,7 +106,7 @@ namespace Certera.Web.Services.Dns
                     // _acme-challenge.sub.example.co.uk
                     domainName = domainName.TrimEnd('.');
 
-                    // First domain we should try to ask 
+                    // First domain we should try to ask
                     var rootDomain = DomainParser.GetTld(domainName);
                     var testZone = rootDomain;
                     var client = GetDefaultClient(round);
@@ -124,7 +120,7 @@ namespace Certera.Web.Services.Dns
                     remainingParts = remainingParts.Reverse();
 
                     var digDeeper = true;
-                    IEnumerable<IPAddress> ipSet = null;
+                    IEnumerable<IPAddress>? ipSet = null;
                     do
                     {
                         // Partial result caching
@@ -165,18 +161,18 @@ namespace Certera.Web.Services.Dns
         }
 
         /// <summary>
-        /// Caches <see cref="LookupClient"/>s by domainName.
-        /// Use <see cref="DefaultClient"/> instead if a name server
-        /// for a specific domain name is not required.
+        ///     Caches <see cref="LookupClient" /> s by domainName. Use <see cref="DefaultClient" />
+        ///     instead if a name server for a specific domain name is not required.
         /// </summary>
-        /// <param name="domainName"></param>
-        /// <returns>Returns an <see cref="ILookupClient"/> using a name
-        /// server associated with the specified domain name.</returns>
+        /// <param name="domainName"> </param>
+        /// <returns>
+        ///     Returns an <see cref="ILookupClient" /> using a name server associated with the
+        ///     specified domain name.
+        /// </returns>
         public async Task<List<LookupClientWrapper>> GetClients(string domainName, int round = 0)
         {
             var ipSet = await GetAuthoritativeNameServersForDomain(domainName, round);
-            return ipSet.Select(ip => Produce(ip)).Where(x => x != null).ToList();
+            return ipSet.Select(Produce).Where(x => x != null).ToList();
         }
-
     }
 }

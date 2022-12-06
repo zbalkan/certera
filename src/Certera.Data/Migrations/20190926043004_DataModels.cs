@@ -9,8 +9,7 @@ namespace Certera.Data.Migrations
         {
             migrationBuilder.CreateTable(
                 name: "DomainCertificates",
-                columns: table => new
-                {
+                columns: table => new {
                     DomainCertificateId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     DateCreated = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
@@ -24,15 +23,11 @@ namespace Certera.Data.Migrations
                     IssuerName = table.Column<string>(nullable: true),
                     CertificateSource = table.Column<int>(nullable: false)
                 },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DomainCertificates", x => x.DomainCertificateId);
-                });
+                constraints: table => table.PrimaryKey("PK_DomainCertificates", x => x.DomainCertificateId));
 
             migrationBuilder.CreateTable(
                 name: "Domains",
-                columns: table => new
-                {
+                columns: table => new {
                     DomainId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Uri = table.Column<string>(nullable: true),
@@ -41,15 +36,11 @@ namespace Certera.Data.Migrations
                     RegistrableDomain = table.Column<string>(nullable: true),
                     Order = table.Column<int>(nullable: false)
                 },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Domains", x => x.DomainId);
-                });
+                constraints: table => table.PrimaryKey("PK_Domains", x => x.DomainId));
 
             migrationBuilder.CreateTable(
                 name: "Keys",
-                columns: table => new
-                {
+                columns: table => new {
                     KeyId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(nullable: false),
@@ -59,15 +50,11 @@ namespace Certera.Data.Migrations
                     DateModified = table.Column<DateTime>(nullable: false),
                     DateRotationReminder = table.Column<DateTimeOffset>(nullable: true)
                 },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Keys", x => x.KeyId);
-                });
+                constraints: table => table.PrimaryKey("PK_Keys", x => x.KeyId));
 
             migrationBuilder.CreateTable(
                 name: "NotificationSettings",
-                columns: table => new
-                {
+                columns: table => new {
                     NotificationSettingId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     ExpirationAlerts = table.Column<bool>(nullable: false),
@@ -81,8 +68,7 @@ namespace Certera.Data.Migrations
                     AdditionalRecipients = table.Column<string>(nullable: true),
                     ApplicationUserId = table.Column<long>(nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_NotificationSettings", x => x.NotificationSettingId);
                     table.ForeignKey(
                         name: "FK_NotificationSettings_AspNetUsers_ApplicationUserId",
@@ -94,30 +80,24 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Settings",
-                columns: table => new
-                {
+                columns: table => new {
                     SettingId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(nullable: false),
                     Value = table.Column<string>(nullable: true)
                 },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Settings", x => x.SettingId);
-                });
+                constraints: table => table.PrimaryKey("PK_Settings", x => x.SettingId));
 
             migrationBuilder.CreateTable(
                 name: "UserConfigurations",
-                columns: table => new
-                {
+                columns: table => new {
                     UserConfigurationId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(nullable: false),
                     Value = table.Column<string>(nullable: true),
                     ApplicationUserId = table.Column<long>(nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_UserConfigurations", x => x.UserConfigurationId);
                     table.ForeignKey(
                         name: "FK_UserConfigurations_AspNetUsers_ApplicationUserId",
@@ -129,8 +109,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "UserNotifications",
-                columns: table => new
-                {
+                columns: table => new {
                     UserNotificationId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     DateCreated = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
@@ -138,8 +117,7 @@ namespace Certera.Data.Migrations
                     DomainCertificateId = table.Column<long>(nullable: false),
                     NotificationEvent = table.Column<int>(nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_UserNotifications", x => x.UserNotificationId);
                     table.ForeignKey(
                         name: "FK_UserNotifications_AspNetUsers_ApplicationUserId",
@@ -157,8 +135,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "DomainCertificateChangeEvents",
-                columns: table => new
-                {
+                columns: table => new {
                     DomainCertificateChangeEventId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     NewDomainCertificateId = table.Column<long>(nullable: false),
@@ -167,8 +144,7 @@ namespace Certera.Data.Migrations
                     DateCreated = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     DateProcessed = table.Column<DateTime>(nullable: true)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_DomainCertificateChangeEvents", x => x.DomainCertificateChangeEventId);
                     table.ForeignKey(
                         name: "FK_DomainCertificateChangeEvents_Domains_DomainId",
@@ -192,8 +168,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AcmeAccounts",
-                columns: table => new
-                {
+                columns: table => new {
                     AcmeAccountId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     AcmeContactEmail = table.Column<string>(nullable: false),
@@ -204,8 +179,7 @@ namespace Certera.Data.Migrations
                     KeyId = table.Column<long>(nullable: false),
                     ApplicationUserId = table.Column<long>(nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_AcmeAccounts", x => x.AcmeAccountId);
                     table.ForeignKey(
                         name: "FK_AcmeAccounts_AspNetUsers_ApplicationUserId",
@@ -223,8 +197,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "KeyHistories",
-                columns: table => new
-                {
+                columns: table => new {
                     KeyHistoryId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     KeyId = table.Column<long>(nullable: false),
@@ -232,8 +205,7 @@ namespace Certera.Data.Migrations
                     Operation = table.Column<string>(nullable: true),
                     DateOperation = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_KeyHistories", x => x.KeyHistoryId);
                     table.ForeignKey(
                         name: "FK_KeyHistories_AspNetUsers_ApplicationUserId",
@@ -251,8 +223,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "DomainScans",
-                columns: table => new
-                {
+                columns: table => new {
                     DomainScanId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     DateScan = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
@@ -263,8 +234,7 @@ namespace Certera.Data.Migrations
                     DomainCertificateId = table.Column<long>(nullable: true),
                     DomainCertificateChangeEventId = table.Column<long>(nullable: true)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_DomainScans", x => x.DomainScanId);
                     table.ForeignKey(
                         name: "FK_DomainScans_DomainCertificateChangeEvents_DomainCertificateChangeEventId",
@@ -288,8 +258,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AcmeCertificates",
-                columns: table => new
-                {
+                columns: table => new {
                     AcmeCertificateId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Name = table.Column<string>(nullable: false),
@@ -307,8 +276,7 @@ namespace Certera.Data.Migrations
                     CsrCommonName = table.Column<string>(nullable: true),
                     AcmeAccountId = table.Column<long>(nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_AcmeCertificates", x => x.AcmeCertificateId);
                     table.ForeignKey(
                         name: "FK_AcmeCertificates_AcmeAccounts_AcmeAccountId",
@@ -326,8 +294,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AcmeOrders",
-                columns: table => new
-                {
+                columns: table => new {
                     AcmeOrderId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     DateCreated = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
@@ -339,8 +306,7 @@ namespace Certera.Data.Migrations
                     AcmeCertificateId = table.Column<long>(nullable: false),
                     DomainCertificateId = table.Column<long>(nullable: true)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_AcmeOrders", x => x.AcmeOrderId);
                     table.ForeignKey(
                         name: "FK_AcmeOrders_AcmeCertificates_AcmeCertificateId",
@@ -358,8 +324,7 @@ namespace Certera.Data.Migrations
 
             migrationBuilder.CreateTable(
                 name: "AcmeRequests",
-                columns: table => new
-                {
+                columns: table => new {
                     AcmeRequestId = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     DateCreated = table.Column<DateTime>(nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
@@ -367,8 +332,7 @@ namespace Certera.Data.Migrations
                     KeyAuthorization = table.Column<string>(nullable: true),
                     AcmeOrderId = table.Column<long>(nullable: false)
                 },
-                constraints: table =>
-                {
+                constraints: table => {
                     table.PrimaryKey("PK_AcmeRequests", x => x.AcmeRequestId);
                     table.ForeignKey(
                         name: "FK_AcmeRequests_AcmeOrders_AcmeOrderId",

@@ -3,12 +3,13 @@
  * Modifications:
  *   Kept overall logic, but changed things to operate without needing addtional services and frameworks used by win-acme.
 */
-using DnsClient;
-using DnsClient.Protocol;
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using DnsClient;
+using DnsClient.Protocol;
 
 namespace Certera.Web.Services.Dns
 {
@@ -32,7 +33,7 @@ namespace Certera.Web.Services.Dns
             _provider = provider;
         }
 
-        public async Task<IEnumerable<IPAddress>> GetAuthoritativeNameServers(string domainName, int round)
+        public async Task<IEnumerable<IPAddress>?> GetAuthoritativeNameServers(string domainName, int round)
         {
             domainName = domainName.TrimEnd('.');
             var nsResponse = await LookupClient.QueryAsync(domainName, QueryType.NS);
@@ -42,11 +43,7 @@ namespace Certera.Web.Services.Dns
             {
                 nsRecords = nsResponse.Authorities.OfType<NsRecord>();
             }
-            if (nsRecords.Any())
-            {
-                return GetNameServerIpAddresses(nsRecords.Select(n => n.NSDName.Value), round);
-            }
-            return null;
+            return nsRecords.Any() ? GetNameServerIpAddresses(nsRecords.Select(n => n.NSDName.Value), round) : null;
         }
 
         private IEnumerable<IPAddress> GetNameServerIpAddresses(IEnumerable<string> nsRecords, int round)

@@ -1,4 +1,6 @@
-﻿namespace Certera.Core.Extensions
+﻿using System;
+
+namespace Certera.Core.Extensions
 {
     public static class DateTimeExtensions
     {

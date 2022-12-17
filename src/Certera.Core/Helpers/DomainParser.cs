@@ -1,4 +1,5 @@
-﻿using Nager.PublicSuffix;
+﻿using System;
+using Nager.PublicSuffix;
 
 namespace Certera.Core.Helpers
 {

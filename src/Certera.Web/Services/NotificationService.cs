@@ -285,38 +285,40 @@ namespace Certera.Web.Services
 
         private void SendSlack(string slackUrl, string json)
         {
-            using var client = new WebClient();
-            var data = new NameValueCollection
-            {
-                ["payload"] = json
-            };
+            // TODO: Rewrite this as a plugin in a separate project.
 
-            var tries = 3;
-            while (tries > 0)
-            {
-                try
-                {
-                    var response = client.UploadValues(slackUrl, "POST", data);
+            //using var client = new WebClient();
+            //var data = new NameValueCollection
+            //{
+            //    ["payload"] = json
+            //};
 
-                    var responseText = Encoding.UTF8.GetString(response);
-                    _logger.LogDebug($"Slack response: {responseText}");
+            //var tries = 3;
+            //while (tries > 0)
+            //{
+            //    try
+            //    {
+            //        var response = client.UploadValues(slackUrl, "POST", data);
 
-                    break;
-                }
-                catch (WebException we)
-                {
-                    string? errorResponse = null;
-                    if (we.Response != null)
-                    {
-                        using var response = we.Response;
-                        var stream = response.GetResponseStream();
-                        using var reader = new StreamReader(stream);
-                        errorResponse = reader.ReadToEnd();
-                    }
-                    _logger.LogError($"Error sending to slack. {we.Status}. {we.Message}. {errorResponse}");
-                }
-                tries--;
-            }
+            //        var responseText = Encoding.UTF8.GetString(response);
+            //        _logger.LogDebug($"Slack response: {responseText}");
+
+            //        break;
+            //    }
+            //    catch (WebException we)
+            //    {
+            //        string? errorResponse = null;
+            //        if (we.Response != null)
+            //        {
+            //            using var response = we.Response;
+            //            var stream = response.GetResponseStream();
+            //            using var reader = new StreamReader(stream);
+            //            errorResponse = reader.ReadToEnd();
+            //        }
+            //        _logger.LogError($"Error sending to slack. {we.Status}. {we.Message}. {errorResponse}");
+            //    }
+            //    tries--;
+            //}
         }
 
         private bool InitEmail(IList<NotificationSetting> notificationSettings)

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Certera.Web
 {
-    public static class Program
+    public class Program
     {
         private static CancellationTokenSource _cancelTokenSource;
         private static bool _restartRequested;

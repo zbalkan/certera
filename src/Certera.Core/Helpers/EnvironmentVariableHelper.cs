@@ -1,4 +1,7 @@
-﻿namespace Certera.Core.Helpers
+﻿using System;
+using System.Collections.Generic;
+
+namespace Certera.Core.Helpers
 {
     public static class EnvironmentVariableHelper
     {

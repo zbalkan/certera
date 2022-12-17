@@ -6,6 +6,12 @@
     <ImplicitUsings>disable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Certera.db" />
+    <None Remove="Certera.db-shm" />
+    <None Remove="Certera.db-wal" />
+  </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="BuildBundlerMinifier" Version="3.2.449" />
         <PackageReference Include="Certes" Version="3.0.3" />

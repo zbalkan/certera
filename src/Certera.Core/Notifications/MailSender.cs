@@ -1,4 +1,6 @@
-﻿using MailKit.Net.Smtp;
+﻿using System;
+using System.Linq;
+using MailKit.Net.Smtp;
 using MimeKit;
 
 namespace Certera.Core.Notifications

@@ -1,4 +1,7 @@
-﻿namespace Certera.Core.Extensions
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace Certera.Core.Extensions
 {
     public static class LinqExtensions
     {

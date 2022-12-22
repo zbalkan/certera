@@ -6,7 +6,10 @@ namespace Certera.Integrations.Notification.Notifiers
     public interface INotifier
     {
 
-        // Recipients can be API webhooks, channel names, etc.
-        Task<bool> TrySendAsync(string body, List<string> recipients, string? subject = null);
+        /// <summary>
+        ///     Send notification.
+        /// </summary>
+        /// <exception cref="NotificationException">Thrown when sending fails.</exception>
+        Task TrySendAsync(string body, List<string> recipients, string? subject = null);
     }
 }

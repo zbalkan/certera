@@ -14,19 +14,19 @@ namespace Certera.Integrations.Notification.Notifiers
             _slackClient = new HttpClient();
         }
 
-        public async Task<bool> TrySendAsync(string body, List<string> recipients, string subject = null)
+        public async Task TrySendAsync(string body, List<string> recipients, string subject = null)
         {
             var content = new StringContent(body, Encoding.UTF8, "application/json");
 
             HttpResponseMessage httpResponse;
             try
             {
-                httpResponse = await _slackClient.PostAsync("slackUrl", content);
+                httpResponse = await _slackClient.PostAsync("slackUrl", content); // Solve slack url issue
             }
             catch (HttpRequestException ex)
             {
                 // TODO: Log exception
-                return false;
+                throw new NotificationException(ex);
             }
 
             if (httpResponse.Content != null)
@@ -35,8 +35,6 @@ namespace Certera.Integrations.Notification.Notifiers
 
                 // TODO: Log response
             }
-
-            return true;
         }
     }
 }

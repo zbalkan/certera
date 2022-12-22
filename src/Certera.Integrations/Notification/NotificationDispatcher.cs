@@ -4,6 +4,7 @@ using Certera.Integrations.Notification.Notifications;
 using Certera.Integrations.Notification.Notifiers;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace Certera.Integrations.Notification
 {
@@ -23,11 +24,24 @@ namespace Certera.Integrations.Notification
 
         private static ILogger _logger;
 
+        private static Policy _retryPolicy;
+
         public static void Init(ILogger logger)
         {
             _logger = logger;
 
-            // Use Result pattern instead of bool
+
+            // Retry a specified number of times, using a function to
+            // calculate the duration to wait between retries based on
+            // the current retry attempt (allows for exponential back-off)
+            // In this case will wait for
+            //  2 ^ 1 = 2 seconds then
+            //  2 ^ 2 = 4 seconds then
+            //  2 ^ 3 = 8 seconds
+            _retryPolicy = Policy
+              .Handle<NotificationException>()
+              .WaitAndRetry(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));        
+
             _notificationFormats = new Dictionary<Type, Func<INotification, string>>
             {
                 { typeof(MailNotifier), UseHtml },
@@ -45,17 +59,13 @@ namespace Certera.Integrations.Notification
             };
         }
 
-        public static async Task SendNotificationAsync<T>(INotification notification, List<string> recipients = null, string subject = null) where T: INotifier
+        public static async Task SendNotificationAsync<T>(INotification notification, List<string> recipients = null, string subject = null) where T : INotifier
         {
             var body = _notificationFormats[typeof(T)](notification);
 
-            var result = await _notifiers[typeof(T)].TrySendAsync(body, recipients, subject);
-
-            if (!result)
-            {
-                throw new Exception("Failed to send notification: reason");
-            }
-
+            await _retryPolicy.Execute(async () => {
+                await _notifiers[typeof(T)].TrySendAsync(body, recipients, subject); // TODO: Use Poly to retry
+            });
             _logger.LogInformation("Notification sent.");
         }
 

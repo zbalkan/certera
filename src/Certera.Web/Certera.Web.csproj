@@ -5,6 +5,7 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <StartupObject>Certera.Web.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -42,6 +43,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Certera.Core\Certera.Core.csproj" />
       <ProjectReference Include="..\Certera.Data\Certera.Data.csproj" />
+      <ProjectReference Include="..\Certera.Integrations\Certera.Integrations.csproj" />
     </ItemGroup>
 
   <ItemGroup>

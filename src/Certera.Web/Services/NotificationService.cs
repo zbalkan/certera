@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Certera.Core.Extensions;
 using Certera.Core.Notifications;
 using Certera.Data.Models;
+using Certera.Integrations.Notification;
+using Certera.Integrations.Notification.Notifications;
+using Certera.Integrations.Notification.Notifiers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -24,9 +25,11 @@ namespace Certera.Web.Services
             _mailSender = mailSender;
             _logger = logger;
             _senderInfo = senderInfo;
+
+            NotificationDispatcher.Init(logger: logger);
         }
 
-        public void SendDomainCertChangeNotification(IList<NotificationSetting> notificationSettings, IList<DomainCertificateChangeEvent> events)
+        public async Task SendDomainCertChangeNotificationAsync(IList<NotificationSetting> notificationSettings, IList<DomainCertificateChangeEvent> events)
         {
             var canSendEmail = InitEmail(notificationSettings);
 
@@ -34,37 +37,28 @@ namespace Certera.Web.Services
             {
                 foreach (var notification in notificationSettings)
                 {
+                    var notif = new CertificateChangeNotification(domain: evt.Domain.HostAndPort(),
+                                                                               newThumbprint: evt.NewDomainCertificate.Thumbprint,
+                                                                               newPublicKey: evt.NewDomainCertificate.Certificate.PublicKeyPinningHash(),
+                                                                               newValidFrom: evt.NewDomainCertificate.ValidNotBefore.ToShortDateString(),
+                                                                               previousThumbprint: evt.NewDomainCertificate.ValidNotAfter.ToShortDateString(),
+                                                                               newValidTo: evt.PreviousDomainCertificate.Thumbprint,
+                                                                               previousPublicKey: evt.PreviousDomainCertificate.Certificate.PublicKeyPinningHash(),
+                                                                               previousValidFrom: evt.PreviousDomainCertificate.ValidNotBefore.ToShortDateString(),
+                                                                               previousValidTo: evt.PreviousDomainCertificate.ValidNotAfter.ToShortDateString());
+
                     if (canSendEmail && notification.SendEmailNotification)
                     {
                         try
                         {
                             _logger.LogInformation($"Sending change notification email for {evt.Domain.HostAndPort()}");
 
-                            var recipients = new List<string>(1)
-                            {
-                                notification.ApplicationUser.Email
-                            };
-                            if (!string.IsNullOrWhiteSpace(notification.AdditionalRecipients))
-                            {
-                                recipients.AddRange(notification.AdditionalRecipients
-                                    .Split(',', ';', StringSplitOptions.RemoveEmptyEntries)
-                                    .Select(x => x.Trim()));
-                            }
+                            var recipients = ExtractRecipients(notification);
 
-                            _mailSender.Send($"[certera] {evt.Domain.HostAndPort()} - certificate change notification",
-                                TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateChangeEmail,
-                                new {
-                                    Domain = evt.Domain.HostAndPort(),
-                                    NewThumbprint = evt.NewDomainCertificate.Thumbprint,
-                                    NewPublicKey = evt.NewDomainCertificate.Certificate.PublicKeyPinningHash(),
-                                    NewValidFrom = evt.NewDomainCertificate.ValidNotBefore.ToShortDateString(),
-                                    NewValidTo = evt.NewDomainCertificate.ValidNotAfter.ToShortDateString(),
-                                    PreviousThumbprint = evt.PreviousDomainCertificate.Thumbprint,
-                                    PreviousPublicKey = evt.PreviousDomainCertificate.Certificate.PublicKeyPinningHash(),
-                                    PreviousValidFrom = evt.PreviousDomainCertificate.ValidNotBefore.ToShortDateString(),
-                                    PreviousValidTo = evt.PreviousDomainCertificate.ValidNotAfter.ToShortDateString()
-                                }),
-                                recipients.ToArray());
+                            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                                                                    recipients: recipients,
+                                                                    subject: $"[certera] {evt.Domain.HostAndPort()} - certificate change notification")
+                                .ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -78,20 +72,7 @@ namespace Certera.Web.Services
                         {
                             _logger.LogInformation($"Sending change notification slack for {evt.Domain.HostAndPort()}");
 
-                            var json = TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateChangeSlack,
-                                new {
-                                    Domain = evt.Domain.HostAndPort(),
-                                    NewThumbprint = evt.NewDomainCertificate.Thumbprint,
-                                    NewPublicKey = evt.NewDomainCertificate.Certificate.PublicKeyPinningHash(),
-                                    NewValidFrom = evt.NewDomainCertificate.ValidNotBefore.ToShortDateString(),
-                                    NewValidTo = evt.NewDomainCertificate.ValidNotAfter.ToShortDateString(),
-                                    PreviousThumbprint = evt.PreviousDomainCertificate.Thumbprint,
-                                    PreviousPublicKey = evt.PreviousDomainCertificate.Certificate.PublicKeyPinningHash(),
-                                    PreviousValidFrom = evt.PreviousDomainCertificate.ValidNotBefore.ToShortDateString(),
-                                    PreviousValidTo = evt.PreviousDomainCertificate.ValidNotAfter.ToShortDateString()
-                                });
-
-                            SendSlack(notification.SlackWebhookUrl, json);
+                            await NotificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -116,16 +97,7 @@ namespace Certera.Web.Services
                 {
                     try
                     {
-                        var recipients = new List<string>(1)
-                        {
-                            notification.ApplicationUser.Email
-                        };
-                        if (!string.IsNullOrWhiteSpace(notification.AdditionalRecipients))
-                        {
-                            recipients.AddRange(notification.AdditionalRecipients
-                                .Split(',', ';', StringSplitOptions.RemoveEmptyEntries)
-                                .Select(x => x.Trim()));
-                        }
+                        var recipients = ExtractRecipients(notification);
 
                         var previousCertText = string.Empty;
                         var lastAcquiryText = "Never";
@@ -227,16 +199,8 @@ namespace Certera.Web.Services
                 {
                     _logger.LogInformation($"Sending certificate expiration notification email for {expiringCert.Subject}");
 
-                    var recipients = new List<string>(1)
-                    {
-                        notificationSetting.ApplicationUser.Email
-                    };
-                    if (!string.IsNullOrWhiteSpace(notificationSetting.AdditionalRecipients))
-                    {
-                        recipients.AddRange(notificationSetting.AdditionalRecipients
-                            .Split(',', ';', StringSplitOptions.RemoveEmptyEntries)
-                            .Select(x => x.Trim()));
-                    }
+                            var recipients = ExtractRecipients(notificationSetting);
+
 
                     _mailSender.Send($"[certera] {expiringCert.Subject} - certificate expiration notification",
                         TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateExpirationEmail,
@@ -285,40 +249,7 @@ namespace Certera.Web.Services
 
         private void SendSlack(string slackUrl, string json)
         {
-            // TODO: Rewrite this as a plugin in a separate project.
 
-            //using var client = new WebClient();
-            //var data = new NameValueCollection
-            //{
-            //    ["payload"] = json
-            //};
-
-            //var tries = 3;
-            //while (tries > 0)
-            //{
-            //    try
-            //    {
-            //        var response = client.UploadValues(slackUrl, "POST", data);
-
-            //        var responseText = Encoding.UTF8.GetString(response);
-            //        _logger.LogDebug($"Slack response: {responseText}");
-
-            //        break;
-            //    }
-            //    catch (WebException we)
-            //    {
-            //        string? errorResponse = null;
-            //        if (we.Response != null)
-            //        {
-            //            using var response = we.Response;
-            //            var stream = response.GetResponseStream();
-            //            using var reader = new StreamReader(stream);
-            //            errorResponse = reader.ReadToEnd();
-            //        }
-            //        _logger.LogError($"Error sending to slack. {we.Status}. {we.Message}. {errorResponse}");
-            //    }
-            //    tries--;
-            //}
         }
 
         private bool InitEmail(IList<NotificationSetting> notificationSettings)
@@ -336,6 +267,22 @@ namespace Certera.Web.Services
             }
 
             return canSendEmail;
+        }
+
+        private static List<string> ExtractRecipients(NotificationSetting notification)
+        {
+            var recipients = new List<string>(1)
+                            {
+                                notification.ApplicationUser.Email
+                            };
+            if (!string.IsNullOrWhiteSpace(notification.AdditionalRecipients))
+            {
+                recipients.AddRange(notification.AdditionalRecipients
+                    .Split(',', ';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()));
+            }
+
+            return recipients;
         }
 
         #region IDisposable Support

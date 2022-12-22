@@ -16,7 +16,7 @@ namespace Certera.Web.Services.HostedServices
     {
         private readonly IServiceProvider _services;
         private readonly ILogger _logger;
-        private Timer? _timer;
+        private Timer _timer;
         private bool _running;
 
         public CertificateChangeNotificationService(IServiceProvider services,
@@ -47,13 +47,13 @@ namespace Certera.Web.Services.HostedServices
             _running = true;
             _logger.LogInformation("Certificate change notification job started.");
 
-            RunNotificationCheck();
+            RunNotificationCheckAsync().GetAwaiter(); // We need to wait for completion.
 
             _logger.LogInformation("Certificate change notification job completed.");
             _running = false;
         }
 
-        private void RunNotificationCheck()
+        private async Task RunNotificationCheckAsync()
         {
             using var scope = _services.CreateScope();
             try
@@ -73,19 +73,19 @@ namespace Certera.Web.Services.HostedServices
                 }
 
                 // Get the change events that were created when scans occurred
-                var events = dataContext.DomainCertificateChangeEvents
+                var events = await dataContext.DomainCertificateChangeEvents
                     .Include(x => x.Domain)
                     .Include(x => x.NewDomainCertificate)
                     .Include(x => x.PreviousDomainCertificate)
                     .Where(x => x.DateProcessed == null)
-                    .ToList();
+                    .ToListAsync();
 
-                var notificationSettings = dataContext.NotificationSettings
+                var notificationSettings = await dataContext.NotificationSettings
                     .Include(x => x.ApplicationUser)
                     .Where(x => x.ChangeAlerts)
-                    .ToList();
+                    .ToListAsync();
 
-                notificationService.SendDomainCertChangeNotification(notificationSettings, events);
+                await notificationService.SendDomainCertChangeNotificationAsync(notificationSettings, events);
 
                 // User notified, save the record
                 dataContext.SaveChanges();

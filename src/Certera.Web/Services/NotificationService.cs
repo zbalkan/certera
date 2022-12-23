@@ -25,8 +25,18 @@ namespace Certera.Web.Services
             NotificationDispatcher.AddMailNotification(info: mailOptions.Value);
         }
 
-        public async void SendCertAcquitionFailureNotification(IList<NotificationSetting> notificationSettings,
-            AcmeOrder acmeOrder, AcmeOrder lastValidAcmeOrder)
+        public async Task SendAccountVerificationNotificationAsync(string callbackUrl, List<string> recipients)
+        {
+            _logger.LogInformation($"Sending verification email to {string.Join(',', recipients)}.");
+
+            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new AccountVerificationNotification(callbackUrl),
+                                                                       recipients: recipients,
+                                                                       subject: "[certera] Confirm your recipient")
+                .ConfigureAwait(false);
+        }
+
+        public async Task SendCertAcquitionFailureNotificationAsync(IList<NotificationSetting> notificationSettings,
+                    AcmeOrder acmeOrder, AcmeOrder lastValidAcmeOrder)
         {
             foreach (var notification in notificationSettings)
             {
@@ -125,7 +135,8 @@ namespace Certera.Web.Services
                 evt.DateProcessed = DateTime.UtcNow;
             }
         }
-        public async void SendExpirationNotification(NotificationSetting notificationSetting, Data.Views.TrackedCertificate expiringCert)
+
+        public async Task SendExpirationNotificationAsync(NotificationSetting notificationSetting, Data.Views.TrackedCertificate expiringCert)
         {
             var daysText = ExtractDays(expiringCert);
 
@@ -169,6 +180,25 @@ namespace Certera.Web.Services
             }
         }
 
+        public async Task SendPasswordResetNotificationAsync(string callbackUrl, List<string> recipients)
+        {
+            _logger.LogInformation($"Sending password reset email to {string.Join(',', recipients)}.");
+
+            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new AccountVerificationNotification(callbackUrl),
+                                                                       recipients: recipients,
+                                                                       subject: "[certera] Reset Password")
+                .ConfigureAwait(false);
+        }
+
+        public async Task SendTestNotificationAsync(List<string> recipients)
+        {
+            _logger.LogInformation($"Sending test email to {string.Join(',',recipients)}.");
+
+            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new TestNotification(),
+                                                                       recipients: recipients,
+                                                                       subject: "[certera] Test Email")
+                .ConfigureAwait(false);
+        }
         private static string ExtractDays(TrackedCertificate expiringCert)
         {
             var days = (int)Math.Floor(expiringCert.ValidTo.Value.Subtract(DateTime.Now).TotalDays);

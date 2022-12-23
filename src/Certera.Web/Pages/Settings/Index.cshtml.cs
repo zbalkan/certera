@@ -2,25 +2,23 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using Certera.Core.Notifications;
+using System.Threading.Tasks;
 using Certera.Data;
+using Certera.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Options;
 
 namespace Certera.Web.Pages.Settings
 {
     public class IndexModel : PageModel
     {
         private readonly DataContext _dataContext;
-        private readonly MailSender _mailSender;
-        private readonly IOptionsSnapshot<MailSenderInfo> _senderInfo;
+        private readonly NotificationService _notificationService;
 
-        public IndexModel(DataContext dataContext, MailSender mailSender, IOptionsSnapshot<MailSenderInfo> senderInfo)
+        public IndexModel(DataContext dataContext, NotificationService notificationService)
         {
             _dataContext = dataContext;
-            _mailSender = mailSender;
-            _senderInfo = senderInfo;
+            _notificationService = notificationService;
         }
 
         [Range(10, 45, ErrorMessage = "Must be between 10 and 45 days")]
@@ -78,28 +76,22 @@ namespace Certera.Web.Pages.Settings
             return Page();
         }
 
-        public IActionResult OnPostSendTestEmail()
+        public async Task<IActionResult> OnPostSendTestEmailAsync()
         {
-            if (string.IsNullOrWhiteSpace(_senderInfo?.Value?.Host))
+            var recipients = new List<string>();
+            if (!string.IsNullOrWhiteSpace(Recipients))
             {
-                StatusMessage = "No SMTP configuration specified";
+                recipients.AddRange(Recipients
+                    .Split(',', ';', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()));
+
+                await _notificationService.SendTestNotificationAsync(recipients).ConfigureAwait(false);
+
+                StatusMessage = "Test email sent";
             }
             else
             {
-                _mailSender.Initialize(_senderInfo.Value);
-                var recipients = new List<string>();
-                if (!string.IsNullOrWhiteSpace(Recipients))
-                {
-                    recipients.AddRange(Recipients
-                        .Split(',', ';', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(x => x.Trim()));
-                    _mailSender.Send("[certera] Test Email", "Test email from Certera", recipients.ToArray());
-                    StatusMessage = "Test email sent";
-                }
-                else
-                {
-                    StatusMessage = "No recipient specified";
-                }
+                StatusMessage = "No recipient specified";
             }
 
             return Page();

@@ -3,11 +3,12 @@ using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Certera.Core.Notifications;
 using Certera.Data;
+using Certera.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 
 namespace Certera.Web.Pages.Account
 {
@@ -15,14 +16,12 @@ namespace Certera.Web.Pages.Account
     public class ForgotPasswordModel : PageModel
     {
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly MailSender _mailSender;
+        private readonly NotificationService _notificationService;
 
-        public ForgotPasswordModel(UserManager<ApplicationUser> userManager, MailSender mailSender,
-            IOptionsSnapshot<MailSenderInfo> mailInfo)
+        public ForgotPasswordModel(UserManager<ApplicationUser> userManager, NotificationService notificationService)
         {
             _userManager = userManager;
-            _mailSender = mailSender;
-            _mailSender.Initialize(mailInfo.Value);
+            _notificationService = notificationService;
         }
 
         [BindProperty]
@@ -55,10 +54,7 @@ namespace Certera.Web.Pages.Account
                     values: new { code },
                     protocol: Request.Scheme);
 
-                _mailSender.Send(
-                    "Reset Password",
-                    $"Please reset your password by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.",
-                    Input.Email);
+                await _notificationService.SendPasswordResetNotificationAsync(callbackUrl,new List<string> { Input.Email }).ConfigureAwait(false);
 
                 return RedirectToPage("./ForgotPasswordConfirmation");
             }

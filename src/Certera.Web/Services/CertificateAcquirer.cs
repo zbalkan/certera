@@ -105,7 +105,7 @@ namespace Certera.Web.Services
                     .OrderByDescending(x => x.DateCreated)
                     .FirstOrDefault(x => x.Status == AcmeOrderStatus.Completed);
 
-                _notificationService.SendCertAcquitionFailureNotification(notificationSettings, acmeOrder, lastValidAcmeOrder);
+                _notificationService.SendCertAcquitionFailureNotificationAsync(notificationSettings, acmeOrder, lastValidAcmeOrder);
             }
             catch (Exception e)
             {

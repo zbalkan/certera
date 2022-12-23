@@ -1,13 +1,12 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
 using System.Threading.Tasks;
-using Certera.Core.Notifications;
 using Certera.Data;
+using Certera.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Options;
+using System.Collections.Generic;
 
 namespace Certera.Web.Pages.Account.Manage
 {
@@ -15,18 +14,16 @@ namespace Certera.Web.Pages.Account.Manage
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly MailSender _mailSender;
+        private readonly NotificationService _notificationService;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            MailSender mailSender,
-            IOptionsSnapshot<MailSenderInfo> mailInfo)
+            NotificationService notificationService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _mailSender = mailSender;
-            _mailSender.Initialize(mailInfo.Value);
+            _notificationService = notificationService;
         }
 
         public string Username { get; set; }
@@ -95,7 +92,7 @@ namespace Certera.Web.Pages.Account.Manage
                 if (!setEmailResult.Succeeded)
                 {
                     var userId = await _userManager.GetUserIdAsync(user);
-                    throw new InvalidOperationException($"Unexpected error occurred setting email for user with ID '{userId}'.");
+                    throw new InvalidOperationException($"Unexpected error occurred setting recipient for user with ID '{userId}'.");
                 }
             }
 
@@ -129,19 +126,17 @@ namespace Certera.Web.Pages.Account.Manage
             }
 
             var userId = await _userManager.GetUserIdAsync(user);
-            var email = await _userManager.GetEmailAsync(user);
+            var recipient = await _userManager.GetEmailAsync(user);
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var callbackUrl = Url.Page(
                 "/Account/ConfirmEmail",
                 pageHandler: null,
                 values: new { userId = userId, code = code },
                 protocol: Request.Scheme);
-            _mailSender.Send(
-                "Confirm your email",
-                $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.",
-                email);
 
-            StatusMessage = "Verification email sent. Please check your email.";
+            await _notificationService.SendAccountVerificationNotificationAsync(callbackUrl, new List<string> { recipient }).ConfigureAwait(false);
+
+            StatusMessage = "Verification recipient sent. Please check your recipient.";
             return RedirectToPage();
         }
     }

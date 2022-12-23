@@ -14,7 +14,7 @@ namespace Certera.Integrations.Notification
 
         private static Dictionary<Type, INotifier> _notifiers;
 
-        private static readonly MailNotifier _mailNotifier = new MailNotifier();
+        private static MailNotifier _mailNotifier;
 
         private static readonly TeamsNotifier _teamsNotifier = new TeamsNotifier();
 
@@ -30,7 +30,6 @@ namespace Certera.Integrations.Notification
         {
             _logger = logger;
 
-
             // Retry a specified number of times, using a function to
             // calculate the duration to wait between retries based on
             // the current retry attempt (allows for exponential back-off)
@@ -40,7 +39,7 @@ namespace Certera.Integrations.Notification
             //  2 ^ 3 = 8 seconds
             _retryPolicy = Policy
               .Handle<NotificationException>()
-              .WaitAndRetry(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));        
+              .WaitAndRetry(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
             _notificationFormats = new Dictionary<Type, Func<INotification, string>>
             {
@@ -63,11 +62,12 @@ namespace Certera.Integrations.Notification
         {
             var body = _notificationFormats[typeof(T)](notification);
 
-            await _retryPolicy.Execute(async () => {
-                await _notifiers[typeof(T)].TrySendAsync(body, recipients, subject); // TODO: Use Poly to retry
-            });
+            await _retryPolicy.Execute(action: async () => await _notifiers[typeof(T)].TrySendAsync(body, recipients, subject));
+
             _logger.LogInformation("Notification sent.");
         }
+
+        public static void AddMailNotification(MailNotifierOptions info) => _mailNotifier = new MailNotifier(info);
 
         private static string UseHtml(INotification notification) => notification.ToHtml();
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Certera.Core.Notifications;
 using Certera.Data;
+using Certera.Integrations.Notification.Notifiers;
 using Certera.Web.AcmeProviders;
 using Certera.Web.Authentication;
 using Certera.Web.Middleware;
@@ -43,7 +44,8 @@ namespace Certera.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.ConfigureWritable<HttpServer>(Configuration.GetSection("HTTPServer"));
-            services.ConfigureWritable<MailSenderInfo>(Configuration.GetSection("SMTP"));
+            services.ConfigureWritable<MailSenderInfo>(Configuration.GetSection("SMTP")); // TODO: Decommission
+            services.ConfigureWritable<MailNotifierOptions>(Configuration.GetSection("SMTP"));
             services.ConfigureWritable<Setup>(Configuration.GetSection("Setup"));
             services.Configure<AllowedRemoteIPAddresses>(Configuration.GetSection("AllowedRemoteIPAddresses"));
             services.Configure<DnsServers>(Configuration.GetSection("DnsServers"));

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Certera.Core.Extensions;
-using Certera.Core.Notifications;
 using Certera.Data.Models;
 using Certera.Data.Views;
 using Certera.Integrations.Notification;
@@ -18,11 +17,12 @@ namespace Certera.Web.Services
     {
         private readonly ILogger<NotificationService> _logger;
 
-        public NotificationService(ILogger<NotificationService> logger)
+        public NotificationService(ILogger<NotificationService> logger,
+            IOptionsSnapshot<MailNotifierOptions> mailOptions)
         {
             _logger = logger;
-
             NotificationDispatcher.Init(logger: logger);
+            NotificationDispatcher.AddMailNotification(info: mailOptions.Value);
         }
 
         public async void SendCertAcquitionFailureNotification(IList<NotificationSetting> notificationSettings,

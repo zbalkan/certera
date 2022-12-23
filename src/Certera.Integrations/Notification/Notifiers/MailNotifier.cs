@@ -9,13 +9,14 @@ namespace Certera.Integrations.Notification.Notifiers
     public class MailNotifier : INotifier
     {
         private readonly SmtpClient _client;
-        private readonly MailSenderInfo _info;
+        private readonly MailNotifierOptions _info;
 
-        public MailNotifier(MailSenderInfo info)
+        public MailNotifier(MailNotifierOptions info)
         {
             _client = new SmtpClient();
             _info = info;
         }
+
 
         public async Task TrySendAsync(string body, List<string> recipients, string subject = null)
         {
@@ -68,8 +69,7 @@ namespace Certera.Integrations.Notification.Notifiers
         #endregion IDisposable Support
     }
 
-    // TODO: Use options pattern for settings
-    public class MailSenderInfo
+    public class MailNotifierOptions
     {
         public string Host { get; set; }
         public int Port { get; set; }

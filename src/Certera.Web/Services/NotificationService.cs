@@ -31,8 +31,6 @@ namespace Certera.Web.Services
 
         public async Task SendDomainCertChangeNotificationAsync(IList<NotificationSetting> notificationSettings, IList<DomainCertificateChangeEvent> events)
         {
-            var canSendEmail = InitEmail(notificationSettings);
-
             foreach (var evt in events)
             {
                 foreach (var notification in notificationSettings)
@@ -47,7 +45,7 @@ namespace Certera.Web.Services
                                                                                previousValidFrom: evt.PreviousDomainCertificate.ValidNotBefore.ToShortDateString(),
                                                                                previousValidTo: evt.PreviousDomainCertificate.ValidNotAfter.ToShortDateString());
 
-                    if (canSendEmail && notification.SendEmailNotification)
+                    if (notification.SendEmailNotification)
                     {
                         try
                         {
@@ -86,56 +84,45 @@ namespace Certera.Web.Services
             }
         }
 
-        public void SendCertAcquitionFailureNotification(IList<NotificationSetting> notificationSettings,
+        public async void SendCertAcquitionFailureNotification(IList<NotificationSetting> notificationSettings,
             AcmeOrder acmeOrder, AcmeOrder lastValidAcmeOrder)
         {
-            var canSendEmail = InitEmail(notificationSettings);
-
             foreach (var notification in notificationSettings)
             {
-                if (canSendEmail && notification.SendEmailNotification)
+                var recipients = ExtractRecipients(notification);
+
+                var lastAcquiryText = "Never";
+                var thumbprint = string.Empty;
+                var publicKey = string.Empty;
+                var validFrom = string.Empty;
+                var validTo = string.Empty;
+
+                if (lastValidAcmeOrder?.DomainCertificate != null)
+                {
+                    lastAcquiryText = lastValidAcmeOrder.DateCreated.ToString();
+                    thumbprint = lastValidAcmeOrder.DomainCertificate.Thumbprint;
+                    publicKey = lastValidAcmeOrder.DomainCertificate.Certificate.PublicKeyPinningHash();
+                    validFrom = lastValidAcmeOrder.DomainCertificate.ValidNotBefore.ToShortDateString();
+                    validTo = lastValidAcmeOrder.DomainCertificate.ValidNotAfter.ToShortDateString();
+                }
+
+                var notif = new CertificateAcquisitionFailureNotification(domain: acmeOrder.AcmeCertificate.Subject,
+                                                                          error: acmeOrder.Errors,
+                                                                          lastAcquiryText: lastAcquiryText,
+                                                                          thumbprint: thumbprint,
+                                                                          publicKey: publicKey,
+                                                                          validFrom: validFrom,
+                                                                          validTo: validTo);
+
+                if (notification.SendEmailNotification)
                 {
                     try
                     {
-                        var recipients = ExtractRecipients(notification);
-
-                        var previousCertText = string.Empty;
-                        var lastAcquiryText = "Never";
-
-                        if (lastValidAcmeOrder?.DomainCertificate != null)
-                        {
-                            lastAcquiryText = lastValidAcmeOrder.DateCreated.ToString();
-
-                            var thumbprint = lastValidAcmeOrder.DomainCertificate.Thumbprint;
-                            var publicKey = lastValidAcmeOrder.DomainCertificate.Certificate.PublicKeyPinningHash();
-                            var validFrom = lastValidAcmeOrder.DomainCertificate.ValidNotBefore.ToShortDateString();
-                            var validTo = lastValidAcmeOrder.DomainCertificate.ValidNotAfter.ToShortDateString();
-
-                            var sb = new StringBuilder(100);
-                            sb.AppendLine("<u>Current certificate details</u>")
-                                .AppendLine()
-                                .AppendLine("<b>Thumbprint</b>")
-                                .AppendLine(thumbprint)
-                                .AppendLine()
-                                .AppendLine("<b>Public Key (hash)</b>")
-                                .AppendLine(publicKey)
-                                .AppendLine()
-                                .AppendLine("<b>Valid</b>")
-                                .Append(validFrom).Append(" to ").AppendLine(validTo);
-                            previousCertText = sb.ToString();
-                        }
-
                         _logger.LogInformation($"Sending certificate acquisition failure notification email for {acmeOrder.AcmeCertificate.Name}");
 
-                        _mailSender.Send($"[certera] {acmeOrder.AcmeCertificate.Name} - certificate acquisition failure notification",
-                            TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateAcquisitionFailureEmail,
-                            new {
-                                Domain = acmeOrder.AcmeCertificate.Subject,
-                                Error = acmeOrder.Errors,
-                                PreviousCertificateDetails = previousCertText,
-                                LastAcquiryText = lastAcquiryText
-                            }),
-                            recipients.ToArray());
+                        await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                                                                                         recipients: recipients,
+                                                                                         subject: $"[certera] {acmeOrder.AcmeCertificate.Name} - certificate acquisition failure notification");
                     }
                     catch (Exception ex)
                     {
@@ -148,36 +135,6 @@ namespace Certera.Web.Services
                     try
                     {
                         _logger.LogInformation($"Sending acquisition failure notification slack for {acmeOrder.AcmeCertificate.Name}");
-
-                        var previousCertText = string.Empty;
-                        var lastAcquiryText = "Never";
-
-                        if (lastValidAcmeOrder?.DomainCertificate != null)
-                        {
-                            lastAcquiryText = lastValidAcmeOrder.DateCreated.ToString();
-
-                            var thumbprint = lastValidAcmeOrder.DomainCertificate.Thumbprint;
-                            var publicKey = lastValidAcmeOrder.DomainCertificate.Certificate.PublicKeyPinningHash();
-                            var validFrom = lastValidAcmeOrder.DomainCertificate.ValidNotBefore.ToShortDateString();
-                            var validTo = lastValidAcmeOrder.DomainCertificate.ValidNotAfter.ToShortDateString();
-
-                            var sb = new StringBuilder(100);
-                            sb.Append("*Current certificate details*\n")
-                                .Append("*Thumbprint:*\n").AppendLine(thumbprint)
-                                .AppendLine("*Public Key (hash):*").AppendLine(publicKey)
-                                .AppendLine("*Valid:*").Append(validFrom).Append(" to ").Append(validTo);
-                            previousCertText = sb.ToString();
-                        }
-
-                        var json = TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateAcquisitionFailureSlack,
-                            new {
-                                Domain = acmeOrder.AcmeCertificate.Subject,
-                                Error = acmeOrder.Errors,
-                                PreviousCertificateDetails = previousCertText,
-                                LastAcquiryText = lastAcquiryText
-                            });
-
-                        SendSlack(notification.SlackWebhookUrl, json);
                     }
                     catch (Exception ex)
                     {
@@ -200,7 +157,6 @@ namespace Certera.Web.Services
                     _logger.LogInformation($"Sending certificate expiration notification email for {expiringCert.Subject}");
 
                             var recipients = ExtractRecipients(notificationSetting);
-
 
                     _mailSender.Send($"[certera] {expiringCert.Subject} - certificate expiration notification",
                         TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateExpirationEmail,
@@ -249,9 +205,9 @@ namespace Certera.Web.Services
 
         private void SendSlack(string slackUrl, string json)
         {
-
         }
 
+        // TODO: Move validation to email sender.
         private bool InitEmail(IList<NotificationSetting> notificationSettings)
         {
             var canSendEmail = !string.IsNullOrWhiteSpace(_senderInfo?.Value?.Host);

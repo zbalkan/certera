@@ -8,19 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Remove="Notifications\Templates\NotificationCertificateAcquisitionFailureEmail.html" />
-      <None Remove="Notifications\Templates\NotificationCertificateAcquisitionFailureSlack.json" />
-      <None Remove="Notifications\Templates\NotificationCertificateChangeEmail.html" />
-      <None Remove="Notifications\Templates\NotificationCertificateChangeSlack.json" />
       <None Remove="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
       <None Remove="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateAcquisitionFailureEmail.html" />
-      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateAcquisitionFailureSlack.json" />
-      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateChangeEmail.html" />
-      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateChangeSlack.json" />
       <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
       <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
     </ItemGroup>

@@ -8,19 +8,11 @@ namespace Certera.Core.Notifications
 {
     public static class TemplateManager
     {
-        public static string NotificationCertificateAcquisitionFailureEmail { get; private set; }
-        public static string NotificationCertificateAcquisitionFailureSlack { get; private set; }
-        public static string NotificationCertificateChangeEmail { get; private set; }
-        public static string NotificationCertificateChangeSlack { get; private set; }
         public static string NotificationCertificateExpirationEmail { get; private set; }
         public static string NotificationCertificateExpirationSlack { get; private set; }
 
         static TemplateManager()
         {
-            NotificationCertificateAcquisitionFailureEmail = ReadManifestData("NotificationCertificateAcquisitionFailureEmail.html");
-            NotificationCertificateAcquisitionFailureSlack = ReadManifestData("NotificationCertificateAcquisitionFailureSlack.json");
-            NotificationCertificateChangeEmail = ReadManifestData("NotificationCertificateChangeEmail.html");
-            NotificationCertificateChangeSlack = ReadManifestData("NotificationCertificateChangeSlack.json");
             NotificationCertificateExpirationEmail = ReadManifestData("NotificationCertificateExpirationEmail.html");
             NotificationCertificateExpirationSlack = ReadManifestData("NotificationCertificateExpirationSlack.json");
         }

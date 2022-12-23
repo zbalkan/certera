@@ -6,16 +6,6 @@
         <Nullable>disable</Nullable>
         <InvariantGlobalization>true</InvariantGlobalization>
     </PropertyGroup>
-
-    <ItemGroup>
-      <None Remove="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
-      <None Remove="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationEmail.html" />
-      <EmbeddedResource Include="Notifications\Templates\NotificationCertificateExpirationSlack.json" />
-    </ItemGroup>
     <ItemGroup>
         <PackageReference Include="MailKit" Version="3.4.3" />
         <PackageReference Include="Nager.PublicSuffix" Version="2.4.0" />

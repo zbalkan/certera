@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Certera.Core.Extensions;
 using Certera.Core.Notifications;
 using Certera.Data.Models;
+using Certera.Data.Views;
 using Certera.Integrations.Notification;
 using Certera.Integrations.Notification.Notifications;
 using Certera.Integrations.Notification.Notifiers;
@@ -16,17 +16,61 @@ namespace Certera.Web.Services
 {
     public class NotificationService : IDisposable
     {
-        private readonly MailSender _mailSender;
         private readonly ILogger<NotificationService> _logger;
-        private readonly IOptionsSnapshot<MailSenderInfo> _senderInfo;
 
-        public NotificationService(MailSender mailSender, ILogger<NotificationService> logger, IOptionsSnapshot<MailSenderInfo> senderInfo)
+        public NotificationService(ILogger<NotificationService> logger)
         {
-            _mailSender = mailSender;
             _logger = logger;
-            _senderInfo = senderInfo;
 
             NotificationDispatcher.Init(logger: logger);
+        }
+
+        public async void SendCertAcquitionFailureNotification(IList<NotificationSetting> notificationSettings,
+            AcmeOrder acmeOrder, AcmeOrder lastValidAcmeOrder)
+        {
+            foreach (var notification in notificationSettings)
+            {
+                ParseLastValidAcmeOrder(lastValidAcmeOrder, out var lastAcquiryText, out var thumbprint, out var publicKey, out var validFrom, out var validTo);
+
+                var notif = new CertificateAcquisitionFailureNotification(domain: acmeOrder.AcmeCertificate.Subject,
+                                                                          error: acmeOrder.Errors,
+                                                                          lastAcquiryText: lastAcquiryText,
+                                                                          thumbprint: thumbprint,
+                                                                          publicKey: publicKey,
+                                                                          validFrom: validFrom,
+                                                                          validTo: validTo);
+
+                if (notification.SendEmailNotification)
+                {
+                    try
+                    {
+                        _logger.LogInformation($"Sending certificate acquisition failure notification email for {acmeOrder.AcmeCertificate.Name}");
+
+                        await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                                                                                         recipients: ExtractRecipients(notification),
+                                                                                         subject: $"[certera] {acmeOrder.AcmeCertificate.Name} - certificate acquisition failure notification")
+                            .ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error sending certificate acquisition failure notification email");
+                    }
+                }
+
+                if (notification.SendSlackNotification)
+                {
+                    try
+                    {
+                        _logger.LogInformation($"Sending acquisition failure notification slack for {acmeOrder.AcmeCertificate.Name}");
+
+                        await NotificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error sending certificate acquisition failure notification slack");
+                    }
+                }
+            }
         }
 
         public async Task SendDomainCertChangeNotificationAsync(IList<NotificationSetting> notificationSettings, IList<DomainCertificateChangeEvent> events)
@@ -51,10 +95,8 @@ namespace Certera.Web.Services
                         {
                             _logger.LogInformation($"Sending change notification email for {evt.Domain.HostAndPort()}");
 
-                            var recipients = ExtractRecipients(notification);
-
                             await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
-                                                                    recipients: recipients,
+                                                                    recipients: ExtractRecipients(notification),
                                                                     subject: $"[certera] {evt.Domain.HostAndPort()} - certificate change notification")
                                 .ConfigureAwait(false);
                         }
@@ -83,93 +125,28 @@ namespace Certera.Web.Services
                 evt.DateProcessed = DateTime.UtcNow;
             }
         }
-
-        public async void SendCertAcquitionFailureNotification(IList<NotificationSetting> notificationSettings,
-            AcmeOrder acmeOrder, AcmeOrder lastValidAcmeOrder)
+        public async void SendExpirationNotification(NotificationSetting notificationSetting, Data.Views.TrackedCertificate expiringCert)
         {
-            foreach (var notification in notificationSettings)
-            {
-                var recipients = ExtractRecipients(notification);
+            var daysText = ExtractDays(expiringCert);
 
-                var lastAcquiryText = "Never";
-                var thumbprint = string.Empty;
-                var publicKey = string.Empty;
-                var validFrom = string.Empty;
-                var validTo = string.Empty;
+            var notif = new CertificateExpirationNotification(domain: expiringCert.Subject,
+                                                              thumbprint: expiringCert.Thumbprint,
+                                                              dateTime: expiringCert.ValidTo.ToString(),
+                                                              daysText: daysText,
+                                                              publicKey: expiringCert.PublicKeyHash,
+                                                              validFrom: expiringCert.ValidFrom.Value.ToShortDateString(),
+                                                              validTo: expiringCert.ValidTo.Value.ToShortDateString());
 
-                if (lastValidAcmeOrder?.DomainCertificate != null)
-                {
-                    lastAcquiryText = lastValidAcmeOrder.DateCreated.ToString();
-                    thumbprint = lastValidAcmeOrder.DomainCertificate.Thumbprint;
-                    publicKey = lastValidAcmeOrder.DomainCertificate.Certificate.PublicKeyPinningHash();
-                    validFrom = lastValidAcmeOrder.DomainCertificate.ValidNotBefore.ToShortDateString();
-                    validTo = lastValidAcmeOrder.DomainCertificate.ValidNotAfter.ToShortDateString();
-                }
-
-                var notif = new CertificateAcquisitionFailureNotification(domain: acmeOrder.AcmeCertificate.Subject,
-                                                                          error: acmeOrder.Errors,
-                                                                          lastAcquiryText: lastAcquiryText,
-                                                                          thumbprint: thumbprint,
-                                                                          publicKey: publicKey,
-                                                                          validFrom: validFrom,
-                                                                          validTo: validTo);
-
-                if (notification.SendEmailNotification)
-                {
-                    try
-                    {
-                        _logger.LogInformation($"Sending certificate acquisition failure notification email for {acmeOrder.AcmeCertificate.Name}");
-
-                        await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
-                                                                                         recipients: recipients,
-                                                                                         subject: $"[certera] {acmeOrder.AcmeCertificate.Name} - certificate acquisition failure notification");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error sending certificate acquisition failure notification email");
-                    }
-                }
-
-                if (notification.SendSlackNotification)
-                {
-                    try
-                    {
-                        _logger.LogInformation($"Sending acquisition failure notification slack for {acmeOrder.AcmeCertificate.Name}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error sending certificate acquisition failure notification slack");
-                    }
-                }
-            }
-        }
-
-        public void SendExpirationNotification(NotificationSetting notificationSetting, Data.Views.TrackedCertificate expiringCert)
-        {
-            var days = (int)Math.Floor(expiringCert.ValidTo.Value.Subtract(DateTime.Now).TotalDays);
-            var daysText = $"{days} {(days == 1 ? " day" : "days")}";
-
-            var canSendEmail = InitEmail(new List<NotificationSetting> { notificationSetting });
-            if (canSendEmail && notificationSetting.SendEmailNotification)
+            if (notificationSetting.SendEmailNotification)
             {
                 try
                 {
                     _logger.LogInformation($"Sending certificate expiration notification email for {expiringCert.Subject}");
 
-                            var recipients = ExtractRecipients(notificationSetting);
-
-                    _mailSender.Send($"[certera] {expiringCert.Subject} - certificate expiration notification",
-                        TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateExpirationEmail,
-                        new {
-                            Domain = expiringCert.Subject,
-                            Thumbprint = expiringCert.Thumbprint,
-                            DateTime = expiringCert.ValidTo.ToString(),
-                            DaysText = daysText,
-                            PublicKey = expiringCert.PublicKeyHash,
-                            ValidFrom = expiringCert.ValidFrom.Value.ToShortDateString(),
-                            ValidTo = expiringCert.ValidTo.Value.ToShortDateString()
-                        }),
-                        recipients.ToArray());
+                    await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                                                                               recipients: ExtractRecipients(notificationSetting),
+                                                                               subject: $"[certera] {expiringCert.Subject} - certificate expiration notification")
+                        .ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -183,18 +160,7 @@ namespace Certera.Web.Services
                 {
                     _logger.LogInformation($"Sending certificate expiration notification slack for {expiringCert.Subject}");
 
-                    var json = TemplateManager.BuildTemplate(TemplateManager.NotificationCertificateExpirationSlack,
-                        new {
-                            Domain = expiringCert.Subject,
-                            Thumbprint = expiringCert.Thumbprint,
-                            DateTime = expiringCert.ValidTo.ToString(),
-                            DaysText = daysText,
-                            PublicKey = expiringCert.PublicKeyHash,
-                            ValidFrom = expiringCert.ValidFrom.Value.ToShortDateString(),
-                            ValidTo = expiringCert.ValidTo.Value.ToShortDateString()
-                        });
-
-                    SendSlack(notificationSetting.SlackWebhookUrl, json);
+                    await NotificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -203,26 +169,11 @@ namespace Certera.Web.Services
             }
         }
 
-        private void SendSlack(string slackUrl, string json)
+        private static string ExtractDays(TrackedCertificate expiringCert)
         {
-        }
-
-        // TODO: Move validation to email sender.
-        private bool InitEmail(IList<NotificationSetting> notificationSettings)
-        {
-            var canSendEmail = !string.IsNullOrWhiteSpace(_senderInfo?.Value?.Host);
-            var sendingEmail = notificationSettings.Any(x => x.SendEmailNotification);
-
-            if (sendingEmail && !canSendEmail)
-            {
-                _logger.LogWarning("SMTP not configured. Unable to send certificate change notifications via email.");
-            }
-            else if (sendingEmail && canSendEmail)
-            {
-                _mailSender.Initialize(_senderInfo.Value);
-            }
-
-            return canSendEmail;
+            var days = (int)Math.Floor(expiringCert.ValidTo.Value.Subtract(DateTime.Now).TotalDays);
+            var daysText = $"{days} {(days == 1 ? " day" : "days")}";
+            return daysText;
         }
 
         private static List<string> ExtractRecipients(NotificationSetting notification)
@@ -241,22 +192,43 @@ namespace Certera.Web.Services
             return recipients;
         }
 
+        private static void ParseLastValidAcmeOrder(AcmeOrder lastValidAcmeOrder, out string lastAcquiryText, out string thumbprint, out string publicKey, out string validFrom, out string validTo)
+        {
+            lastAcquiryText = "Never";
+            thumbprint = string.Empty;
+            publicKey = string.Empty;
+            validFrom = string.Empty;
+            validTo = string.Empty;
+            if (lastValidAcmeOrder?.DomainCertificate != null)
+            {
+                lastAcquiryText = lastValidAcmeOrder.DateCreated.ToString();
+                thumbprint = lastValidAcmeOrder.DomainCertificate.Thumbprint;
+                publicKey = lastValidAcmeOrder.DomainCertificate.Certificate.PublicKeyPinningHash();
+                validFrom = lastValidAcmeOrder.DomainCertificate.ValidNotBefore.ToShortDateString();
+                validTo = lastValidAcmeOrder.DomainCertificate.ValidNotAfter.ToShortDateString();
+            }
+        }
+
+        // TODO: Move validation to email sender.
+        //private bool InitEmail(IList<NotificationSetting> notificationSettings)
+        //{
+        //    var canSendEmail = !string.IsNullOrWhiteSpace(_senderInfo?.Value?.Host);
+        //    var sendingEmail = notificationSettings.Any(x => x.SendEmailNotification);
+
+        //    if (sendingEmail && !canSendEmail)
+        //    {
+        //        _logger.LogWarning("SMTP not configured. Unable to send certificate change notifications via email.");
+        //    }
+        //    else if (sendingEmail && canSendEmail)
+        //    {
+        //        _mailSender.Initialize(_senderInfo.Value);
+        //    }
+
+        //    return canSendEmail;
+        //}
         #region IDisposable Support
 
         private bool disposedValue = false; // To detect redundant calls
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    _mailSender?.Dispose();
-                }
-
-                disposedValue = true;
-            }
-        }
 
         public void Dispose()
         {
@@ -264,6 +236,18 @@ namespace Certera.Web.Services
             GC.SuppressFinalize(this);
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    //_mailSender?.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
         #endregion IDisposable Support
     }
 }

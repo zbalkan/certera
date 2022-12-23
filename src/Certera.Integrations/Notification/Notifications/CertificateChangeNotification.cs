@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Certera.Integrations.Notification.Notifications
+﻿namespace Certera.Integrations.Notification.Notifications
 {
     public class CertificateChangeNotification : INotification
     {

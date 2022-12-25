@@ -1,14 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
-using Certera.Core.Notifications;
 using Certera.Data;
 using Certera.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Collections.Generic;
 
 namespace Certera.Web.Pages.Account
 {

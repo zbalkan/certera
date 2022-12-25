@@ -1,9 +1,9 @@
 ﻿@page
 @model Certera.Web.Pages.Settings.IndexModel
 
+@using Certera.Integrations.Notification.Notifiers;
 @using Microsoft.Extensions.Options
-@using Certera.Core.Notifications
-@inject IOptionsSnapshot<MailSenderInfo> MailSenderInfo
+@inject IOptionsSnapshot<MailNotifierOptions> mailOptions
 
 @{
     ViewData["Title"] = "Settings";
@@ -16,7 +16,7 @@
 <div class="content-wrapper">
     <partial name="_SmtpOptionsMissing" />
     <partial name="_StatusMessage" for="StatusMessage" />
-    <div class="row">        
+    <div class="row">
         <form method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <h3>Certificate Renewal Settings</h3>
@@ -89,16 +89,16 @@
                 SMTP Host
             </dt>
             <dd>
-                @MailSenderInfo.Value.Host
+                @mailOptions.Value.Host
             </dd>
             <dt>
                 SMTP Port
             </dt>
             <dd>
-                @MailSenderInfo.Value.Port
+                @mailOptions.Value.Port
             </dd>
         </dl>
-        
+
         <form method="post">
             <div>
                 <label>Test email recipients</label>

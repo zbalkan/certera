@@ -1,7 +1,8 @@
 ﻿using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
 using MailKit.Net.Smtp;
+using Microsoft.Extensions.Options;
 using MimeKit;
 
 namespace Certera.Integrations.Notification.Notifiers
@@ -9,19 +10,18 @@ namespace Certera.Integrations.Notification.Notifiers
     public class MailNotifier : INotifier
     {
         private readonly SmtpClient _client;
-        private readonly MailNotifierOptions _info;
+        private readonly MailNotifierOptions _options;
 
-        public MailNotifier(MailNotifierOptions info)
+        public MailNotifier(IOptionsSnapshot<MailNotifierOptions> options)
         {
             _client = new SmtpClient();
-            _info = info;
+            _options = options.Value;
         }
-
 
         public async Task TrySendAsync(string body, List<string> recipients, string subject = null)
         {
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_info.FromName, _info.FromEmail));
+            message.From.Add(new MailboxAddress(_options.FromName, _options.FromEmail));
             message.To.AddRange(recipients.Select(x => MailboxAddress.Parse(x)));
             message.Subject = subject;
             message.Body = new TextPart(MimeKit.Text.TextFormat.Html)
@@ -38,11 +38,11 @@ namespace Certera.Integrations.Notification.Notifiers
         {
             if (!_client.IsConnected)
             {
-                await _client.ConnectAsync(_info.Host, _info.Port, _info.UseSsl).ConfigureAwait(false);
+                await _client.ConnectAsync(_options.Host, _options.Port, _options.UseSsl).ConfigureAwait(false);
 
-                if (_info.Username != null || _info.Password != null)
+                if (_options.Username != null || _options.Password != null)
                 {
-                    await _client.AuthenticateAsync(_info.Username, _info.Password).ConfigureAwait(false);
+                    await _client.AuthenticateAsync(_options.Username, _options.Password).ConfigureAwait(false);
                 }
             }
         }

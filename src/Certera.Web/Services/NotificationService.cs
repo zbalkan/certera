@@ -16,20 +16,19 @@ namespace Certera.Web.Services
     public class NotificationService : IDisposable
     {
         private readonly ILogger<NotificationService> _logger;
+        private readonly NotificationDispatcher _notificationDispatcher;
 
-        public NotificationService(ILogger<NotificationService> logger,
-            IOptionsSnapshot<MailNotifierOptions> mailOptions)
+        public NotificationService(ILogger<NotificationService> logger, NotificationDispatcher dispatcher, IOptionsSnapshot<MailNotifierOptions> options)
         {
             _logger = logger;
-            NotificationDispatcher.Init(logger: logger);
-            NotificationDispatcher.AddMailNotification(info: mailOptions.Value);
+            _notificationDispatcher = dispatcher;
         }
 
         public async Task SendAccountVerificationNotificationAsync(string callbackUrl, List<string> recipients)
         {
             _logger.LogInformation($"Sending verification email to {string.Join(',', recipients)}.");
 
-            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new AccountVerificationNotification(callbackUrl),
+            await _notificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new AccountVerificationNotification(callbackUrl),
                                                                        recipients: recipients,
                                                                        subject: "[certera] Confirm your recipient")
                 .ConfigureAwait(false);
@@ -56,7 +55,7 @@ namespace Certera.Web.Services
                     {
                         _logger.LogInformation($"Sending certificate acquisition failure notification email for {acmeOrder.AcmeCertificate.Name}");
 
-                        await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                        await _notificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
                                                                                          recipients: ExtractRecipients(notification),
                                                                                          subject: $"[certera] {acmeOrder.AcmeCertificate.Name} - certificate acquisition failure notification")
                             .ConfigureAwait(false);
@@ -73,7 +72,7 @@ namespace Certera.Web.Services
                     {
                         _logger.LogInformation($"Sending acquisition failure notification slack for {acmeOrder.AcmeCertificate.Name}");
 
-                        await NotificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
+                        await _notificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -105,7 +104,7 @@ namespace Certera.Web.Services
                         {
                             _logger.LogInformation($"Sending change notification email for {evt.Domain.HostAndPort()}");
 
-                            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                            await _notificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
                                                                     recipients: ExtractRecipients(notification),
                                                                     subject: $"[certera] {evt.Domain.HostAndPort()} - certificate change notification")
                                 .ConfigureAwait(false);
@@ -122,7 +121,7 @@ namespace Certera.Web.Services
                         {
                             _logger.LogInformation($"Sending change notification slack for {evt.Domain.HostAndPort()}");
 
-                            await NotificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
+                            await _notificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -154,7 +153,7 @@ namespace Certera.Web.Services
                 {
                     _logger.LogInformation($"Sending certificate expiration notification email for {expiringCert.Subject}");
 
-                    await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
+                    await _notificationDispatcher.SendNotificationAsync<MailNotifier>(notification: notif,
                                                                                recipients: ExtractRecipients(notificationSetting),
                                                                                subject: $"[certera] {expiringCert.Subject} - certificate expiration notification")
                         .ConfigureAwait(false);
@@ -171,7 +170,7 @@ namespace Certera.Web.Services
                 {
                     _logger.LogInformation($"Sending certificate expiration notification slack for {expiringCert.Subject}");
 
-                    await NotificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
+                    await _notificationDispatcher.SendNotificationAsync<SlackNotifier>(notification: notif).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -184,7 +183,7 @@ namespace Certera.Web.Services
         {
             _logger.LogInformation($"Sending password reset email to {string.Join(',', recipients)}.");
 
-            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new AccountVerificationNotification(callbackUrl),
+            await _notificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new AccountVerificationNotification(callbackUrl),
                                                                        recipients: recipients,
                                                                        subject: "[certera] Reset Password")
                 .ConfigureAwait(false);
@@ -194,7 +193,7 @@ namespace Certera.Web.Services
         {
             _logger.LogInformation($"Sending test email to {string.Join(',',recipients)}.");
 
-            await NotificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new TestNotification(),
+            await _notificationDispatcher.SendNotificationAsync<MailNotifier>(notification: new TestNotification(),
                                                                        recipients: recipients,
                                                                        subject: "[certera] Test Email")
                 .ConfigureAwait(false);

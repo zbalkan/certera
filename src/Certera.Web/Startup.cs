@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Certera.Core.Notifications;
 using Certera.Data;
+using Certera.Integrations.Notification;
 using Certera.Integrations.Notification.Notifiers;
 using Certera.Web.AcmeProviders;
 using Certera.Web.Authentication;
@@ -44,7 +44,6 @@ namespace Certera.Web
         public void ConfigureServices(IServiceCollection services)
         {
             services.ConfigureWritable<HttpServer>(Configuration.GetSection("HTTPServer"));
-            services.ConfigureWritable<MailSenderInfo>(Configuration.GetSection("SMTP")); // TODO: Decommission
             services.ConfigureWritable<MailNotifierOptions>(Configuration.GetSection("SMTP"));
             services.ConfigureWritable<Setup>(Configuration.GetSection("Setup"));
             services.Configure<AllowedRemoteIPAddresses>(Configuration.GetSection("AllowedRemoteIPAddresses"));
@@ -77,9 +76,10 @@ namespace Certera.Web
             services.AddTransient<KeyGenerator>();
             services.AddTransient<DomainScanService>();
             services.AddTransient<CertesAcmeProvider>();
-            services.AddTransient<MailSender>();
-            services.AddTransient<CertificateAcquirer>();
+            services.AddTransient<MailNotifier>();
+            services.AddTransient<NotificationDispatcher>();
             services.AddTransient<NotificationService>();
+            services.AddTransient<CertificateAcquirer>();
             var lookupClient = new LookupClient();
             services.AddSingleton<ILookupClient>(lookupClient);
             services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>();

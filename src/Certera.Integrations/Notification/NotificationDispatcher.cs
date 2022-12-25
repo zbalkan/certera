@@ -1,34 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Certera.Integrations.Notification.Notifications;
 using Certera.Integrations.Notification.Notifiers;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Polly;
 
 namespace Certera.Integrations.Notification
 {
-    public static class NotificationDispatcher
+    public class NotificationDispatcher
     {
-        private static Dictionary<Type, Func<INotification, string>> _notificationFormats;
+        private readonly Dictionary<Type, Func<INotification, string>> _notificationFormats;
 
-        private static Dictionary<Type, INotifier> _notifiers;
+        private readonly Dictionary<Type, INotifier> _notifiers;
 
-        private static MailNotifier _mailNotifier;
+        private readonly MailNotifier _mailNotifier;
 
-        private static readonly TeamsNotifier _teamsNotifier = new TeamsNotifier();
+        private readonly TeamsNotifier _teamsNotifier = new TeamsNotifier();
 
-        private static readonly SlackNotifier _slackNotifier = new SlackNotifier();
+        private readonly SlackNotifier _slackNotifier = new SlackNotifier();
 
-        private static readonly SmsNotifier _smsNotifier = new SmsNotifier();
+        private readonly SmsNotifier _smsNotifier = new SmsNotifier();
 
-        private static ILogger _logger;
+        private readonly ILogger _logger;
 
-        private static Policy _retryPolicy;
+        private readonly Policy _retryPolicy;
 
-        public static void Init(ILogger logger)
+        public NotificationDispatcher(ILogger<NotificationDispatcher> logger, IOptionsSnapshot<MailNotifierOptions> options)
         {
             _logger = logger;
+            _mailNotifier= new MailNotifier(options);
 
             // Retry a specified number of times, using a function to
             // calculate the duration to wait between retries based on
@@ -58,7 +60,7 @@ namespace Certera.Integrations.Notification
             };
         }
 
-        public static async Task SendNotificationAsync<T>(INotification notification, List<string> recipients = null, string subject = null) where T : INotifier
+        public async Task SendNotificationAsync<T>(INotification notification, List<string> recipients = null, string subject = null) where T : INotifier
         {
             var body = _notificationFormats[typeof(T)](notification);
 
@@ -67,12 +69,10 @@ namespace Certera.Integrations.Notification
             _logger.LogInformation("Notification sent.");
         }
 
-        public static void AddMailNotification(MailNotifierOptions info) => _mailNotifier = new MailNotifier(info);
+        private string UseHtml(INotification notification) => notification.ToHtml();
 
-        private static string UseHtml(INotification notification) => notification.ToHtml();
+        private string UseMarkdown(INotification notification) => notification.ToMarkdown();
 
-        private static string UseMarkdown(INotification notification) => notification.ToMarkdown();
-
-        private static string UsePlaintext(INotification notification) => notification.ToPlainText();
+        private string UsePlaintext(INotification notification) => notification.ToPlainText();
     }
 }

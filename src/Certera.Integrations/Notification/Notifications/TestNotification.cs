@@ -1,6 +1,4 @@
-﻿using System.Collections.Specialized;
-
-namespace Certera.Integrations.Notification.Notifications
+﻿namespace Certera.Integrations.Notification.Notifications
 {
     public class TestNotification : INotification
     {

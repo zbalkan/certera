@@ -349,8 +349,8 @@ namespace Certera.Data
                 .ToList();
 
             return domainsWithScans
-                .Select(x => x.LatestDomainScan.FirstOrDefault()?.DomainCertificate)
-                .ToList();
+                .ConvertAll(x => x.LatestDomainScan.FirstOrDefault()?.DomainCertificate)
+;
         }
 
         #endregion Domains
@@ -404,11 +404,11 @@ namespace Certera.Data
         {
             var settings = Settings.ToDictionary(x => x.Name, x => x.Value);
 
-            settings.TryGetValue(Data.Settings.Dns01SetEnvironmentVariables.ToString(), out var envVars);
-            settings.TryGetValue(Data.Settings.Dns01SetScript.ToString(), out var setScript);
-            settings.TryGetValue(Data.Settings.Dns01CleanupScript.ToString(), out var cleanupScript);
-            settings.TryGetValue(Data.Settings.Dns01SetScriptArguments.ToString(), out var setScriptArgs);
-            settings.TryGetValue(Data.Settings.Dns01CleanupScriptArguments.ToString(), out var cleanupScriptArgs);
+            settings.TryGetValue(nameof(Data.Settings.Dns01SetEnvironmentVariables), out var envVars);
+            settings.TryGetValue(nameof(Data.Settings.Dns01SetScript), out var setScript);
+            settings.TryGetValue(nameof(Data.Settings.Dns01CleanupScript), out var cleanupScript);
+            settings.TryGetValue(nameof(Data.Settings.Dns01SetScriptArguments), out var setScriptArgs);
+            settings.TryGetValue(nameof(Data.Settings.Dns01CleanupScriptArguments), out var cleanupScriptArgs);
 
             return new DnsSettingsContainer
             {

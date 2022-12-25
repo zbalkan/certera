@@ -192,7 +192,7 @@ namespace Certera.Data
             return certs;
         }
 
-        public AcmeCertificate? GetAcmeCertificate(string host, bool? staging = null)
+        public AcmeCertificate GetAcmeCertificate(string host, bool? staging = null)
         {
             var query = AcmeCertQuery();
 
@@ -245,7 +245,7 @@ namespace Certera.Data
             return domain;
         }
 
-        public IList<Domain> GetDomains(long[]? ids = null)
+        public IList<Domain> GetDomains(long[] ids = null)
         {
             var domainQuery = Domains.AsQueryable();
             if (ids != null)
@@ -355,7 +355,7 @@ namespace Certera.Data
 
         #endregion Domains
 
-        public T? GetSetting<T>(Settings setting, T @default)
+        public T GetSetting<T>(Settings setting, T @default)
         {
             var settingRecord = Settings.FirstOrDefault(x => x.Name == setting.ToString());
 

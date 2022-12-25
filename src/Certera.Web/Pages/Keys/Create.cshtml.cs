@@ -39,7 +39,7 @@ namespace Certera.Web.Pages.Keys
                 return Page();
             }
 
-            IKey? key = null;
+            IKey key = null;
             // First check the plain text uploaded PEM encoded certificate (if any)
             if (!string.IsNullOrWhiteSpace(Key.RawData))
             {

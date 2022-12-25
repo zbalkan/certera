@@ -19,7 +19,7 @@ namespace Certera.Web.Services.HostedServices
     {
         private readonly IServiceProvider _services;
         private readonly ILogger<CertificateExpirationNotificationService> _logger;
-        private Timer? _timer;
+        private Timer _timer;
         private bool _running;
 
         public CertificateExpirationNotificationService(IServiceProvider services,

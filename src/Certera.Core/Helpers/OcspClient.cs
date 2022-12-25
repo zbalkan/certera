@@ -108,7 +108,7 @@ namespace Certera.Core.Helpers
             }
         }
 
-        private List<string>? GetAuthorityInformationAccessOcspUrl(X509Certificate cert)
+        private List<string> GetAuthorityInformationAccessOcspUrl(X509Certificate cert)
         {
             var ocspUrls = new List<string>(1);
 
@@ -196,7 +196,7 @@ namespace Certera.Core.Helpers
             return cStatusEnum;
         }
 
-        private static byte[]? CreateOcspPackage(X509Certificate cert, X509Certificate cacert)
+        private static byte[] CreateOcspPackage(X509Certificate cert, X509Certificate cacert)
         {
             var gen = new OcspReqGenerator();
             try
@@ -243,7 +243,7 @@ namespace Certera.Core.Helpers
             var chain = new X509Chain();
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.Build(cert);
-            X509Certificate2? issuer = null;
+            X509Certificate2 issuer = null;
 
             if (chain.ChainElements.Count > 1)
             {
@@ -254,7 +254,7 @@ namespace Certera.Core.Helpers
             return issuer;
         }
 
-        private static Asn1Object? GetExtensionValue(X509Certificate cert, string oid)
+        private static Asn1Object GetExtensionValue(X509Certificate cert, string oid)
         {
             if (cert == null)
             {

@@ -16,7 +16,7 @@ namespace Certera.Core.Helpers
                     if (parts.Length > 0)
                     {
                         var envKey = parts[0];
-                        string? value = null;
+                        string value = null;
                         if (parts.Length >= 1)
                         {
                             value = parts[1];

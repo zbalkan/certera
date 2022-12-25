@@ -16,7 +16,7 @@ namespace Certera.Web.Services.HostedServices
     {
         private readonly IServiceProvider _services;
         private readonly ILogger<DomainScanIntervalService> _logger;
-        private Timer? _timer;
+        private Timer _timer;
         private bool _running;
 
         public DomainScanIntervalService(IServiceProvider services, ILogger<DomainScanIntervalService> logger)

@@ -23,7 +23,7 @@ namespace Certera.Data.Models
 
         public virtual ICollection<AcmeRequest> AcmeRequests { get; set; } = new List<AcmeRequest>();
 
-        public X509Certificate2? Certificate {
+        public X509Certificate2 Certificate {
             get {
                 if (RawDataPem == null)
                 {

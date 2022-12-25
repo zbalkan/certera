@@ -106,7 +106,7 @@ namespace Certera.Web.Pages.Setup
         {
             // Setup.AcmeContactEmail explicitly specified. Check for existing account, create new
             // if not exists, use key if one specified or create and store new key.
-            AcmeAccount? acmeAccount = null;
+            AcmeAccount acmeAccount = null;
 
             if (!string.IsNullOrWhiteSpace(Setup.AcmeContactEmail))
             {

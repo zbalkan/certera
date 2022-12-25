@@ -15,7 +15,7 @@ namespace Certera.Core.Helpers
             _domainParser = new Nager.PublicSuffix.DomainParser(_webTldRuleProvider);
         }
 
-        public static string? RegistrableDomain(string host)
+        public static string RegistrableDomain(string host)
         {
             if (host == null)
             {

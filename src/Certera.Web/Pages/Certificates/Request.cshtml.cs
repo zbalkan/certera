@@ -19,7 +19,7 @@ namespace Certera.Web.Pages.Certificates
         [TempData]
         public string StatusMessage { get; set; }
 
-        public IActionResult OnGet(long? id = null, string? returnUrl = null)
+        public IActionResult OnGet(long? id = null, string returnUrl = null)
         {
             if (id != null)
             {

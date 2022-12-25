@@ -54,7 +54,7 @@ namespace Certera.Web
                 });
         }
 
-        private static X509Certificate2? GetHttpsCertificate(ConnectionContext connectionContext, KestrelServerOptions options, string name)
+        private static X509Certificate2 GetHttpsCertificate(ConnectionContext connectionContext, KestrelServerOptions options, string name)
         {
             // Bail early if we're connecting locally
             if (connectionContext.IsLocal())

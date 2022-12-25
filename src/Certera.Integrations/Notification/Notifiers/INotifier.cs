@@ -10,6 +10,6 @@ namespace Certera.Integrations.Notification.Notifiers
         ///     Send notification.
         /// </summary>
         /// <exception cref="NotificationException">Thrown when sending fails.</exception>
-        Task TrySendAsync(string body, List<string> recipients, string? subject = null);
+        Task TrySendAsync(string body, List<string> recipients, string subject = null);
     }
 }

@@ -59,7 +59,7 @@ namespace Certera.Web.Options
         public static void ConfigureWritable<T>(
             this IServiceCollection services,
             IConfigurationSection section,
-            string? file = null) where T : class, new()
+            string file = null) where T : class, new()
         {
             file ??= Program.ConfigFileName;
             services.Configure<T>(section);

@@ -4,7 +4,7 @@ namespace Certera.Core.Extensions
 {
     public static class DateTimeExtensions
     {
-        public static string? ToFriendlyString(this DateTime d)
+        public static string ToFriendlyString(this DateTime d)
         {
             // 1. Get time span elapsed since the date.
             var s = DateTime.Now.Subtract(d);

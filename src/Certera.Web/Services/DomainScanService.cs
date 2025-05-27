@@ -69,7 +69,7 @@ namespace Certera.Web.Services
             return domainScan;
         }
 
-        public void ScanAll(long[]? ids = null) => _queue.QueueBackgroundWorkItem(async token => {
+        public void ScanAll(long[] ids = null) => _queue.QueueBackgroundWorkItem(async token => {
             using var scope = _scopeFactory.CreateScope();
             var domainScanSvc = scope.ServiceProvider.GetService<DomainScanService>();
             var dataContext = scope.ServiceProvider.GetService<DataContext>();

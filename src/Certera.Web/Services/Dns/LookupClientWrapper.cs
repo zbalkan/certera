@@ -33,7 +33,7 @@ namespace Certera.Web.Services.Dns
             _provider = provider;
         }
 
-        public async Task<IEnumerable<IPAddress>?> GetAuthoritativeNameServers(string domainName, int round)
+        public async Task<IEnumerable<IPAddress>> GetAuthoritativeNameServers(string domainName, int round)
         {
             domainName = domainName.TrimEnd('.');
             var nsResponse = await LookupClient.QueryAsync(domainName, QueryType.NS);

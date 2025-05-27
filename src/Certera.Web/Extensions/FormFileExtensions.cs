@@ -9,7 +9,7 @@ namespace Certera.Web.Extensions
     {
         public static bool IsNullOrEmpty(this IFormFile file) => file == null || file.Length == 0;
 
-        public static async Task<string?> ReadAsStringAsync(this IFormFile file)
+        public static async Task<string> ReadAsStringAsync(this IFormFile file)
         {
             if (file.IsNullOrEmpty())
             {
@@ -26,7 +26,7 @@ namespace Certera.Web.Extensions
             return result.ToString();
         }
 
-        public static async Task<byte[]?> ReadAsBytesAsync(this IFormFile file)
+        public static async Task<byte[]> ReadAsBytesAsync(this IFormFile file)
         {
             if (file.IsNullOrEmpty())
             {

@@ -19,7 +19,7 @@ namespace Certera.Web.Services.HostedServices
     {
         private readonly IServiceProvider _services;
         private readonly ILogger<CertificateExpirationNotificationService> _logger;
-        private Timer? _timer;
+        private Timer _timer;
         private bool _running;
 
         public CertificateExpirationNotificationService(IServiceProvider services,
@@ -50,13 +50,13 @@ namespace Certera.Web.Services.HostedServices
             _running = true;
             _logger.LogInformation("Certificate expiration notification job started.");
 
-            RunNotificationCheck();
+            _ = RunNotificationCheckAsync().GetAwaiter();
 
             _logger.LogInformation("Certificate expiration notification job completed.");
             _running = false;
         }
 
-        private void RunNotificationCheck()
+        private async Task RunNotificationCheckAsync()
         {
             using var scope = _services.CreateScope();
             try
@@ -115,7 +115,7 @@ namespace Certera.Web.Services.HostedServices
                     {
                         if (bucket.Value.Count > 0)
                         {
-                            CheckAndSendNotification(notificationSetting, bucket, userNotifications, dataContext, notificationService);
+                            await CheckAndSendNotificationAsync(notificationSetting, bucket, userNotifications, dataContext, notificationService);
 
                             // User notified, save the record
                             dataContext.SaveChanges();
@@ -129,7 +129,7 @@ namespace Certera.Web.Services.HostedServices
             }
         }
 
-        private void CheckAndSendNotification(NotificationSetting notificationSetting,
+        private async Task CheckAndSendNotificationAsync(NotificationSetting notificationSetting,
             KeyValuePair<NotificationEvent, List<TrackedCertificate>> bucket,
             Dictionary<string, UserNotification> userNotifications,
             DataContext dataContext,
@@ -155,7 +155,7 @@ namespace Certera.Web.Services.HostedServices
 
                         _logger.LogInformation($"Sending expiration notification email for {expiringCert.Subject}");
 
-                        notificationService.SendExpirationNotification(notificationSetting, expiringCert);
+                        await notificationService.SendExpirationNotificationAsync(notificationSetting, expiringCert);
 
                         // Save the notification so the user isn't notified again for this
                         // certificate and this time period

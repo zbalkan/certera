@@ -80,7 +80,7 @@ namespace Certera.Data.Views
             };
         }
 
-        public static TrackedCertificate? FromAcmeCertificate(AcmeCertificate cert)
+        public static TrackedCertificate FromAcmeCertificate(AcmeCertificate cert)
         {
             if (cert.LatestValidAcmeOrder?.DomainCertificate == null)
             {

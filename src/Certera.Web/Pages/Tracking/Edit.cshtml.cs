@@ -76,7 +76,7 @@ namespace Certera.Web.Pages.Tracking
         private async Task AddOrUpdateCertificate(IFormFile certificateFile)
         {
             var bytes = await certificateFile.ReadAsBytesAsync();
-            X509Certificate2? cert = null;
+            X509Certificate2 cert = null;
             try
             {
                 cert = new X509Certificate2(bytes);

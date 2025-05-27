@@ -48,7 +48,7 @@ namespace Certera.Web.Services.Dns
         /// </summary>
         /// <param name="ip"> </param>
         /// <returns> </returns>
-        private LookupClientWrapper? Produce(IPAddress ip)
+        private LookupClientWrapper Produce(IPAddress ip)
         {
             if (ip == null)
             {
@@ -120,7 +120,7 @@ namespace Certera.Web.Services.Dns
                     remainingParts = remainingParts.Reverse();
 
                     var digDeeper = true;
-                    IEnumerable<IPAddress>? ipSet = null;
+                    IEnumerable<IPAddress> ipSet = null;
                     do
                     {
                         // Partial result caching

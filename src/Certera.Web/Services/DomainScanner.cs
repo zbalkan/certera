@@ -18,11 +18,11 @@ namespace Certera.Web.Services
     public class DomainScanner
     {
         private readonly Domain _domain;
-        private readonly ILookupClient? _lookupClient;
-        private readonly ILogger? _logger;
-        private X509Certificate2? _certificate;
+        private readonly ILookupClient _lookupClient;
+        private readonly ILogger _logger;
+        private X509Certificate2 _certificate;
         private readonly List<string> _messages = new List<string>();
-        private string? _scanStatus;
+        private string _scanStatus;
 
         public DomainScanner(Domain domain, IServiceProvider serviceProvider)
         {

@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading.Tasks;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.Ocsp;
@@ -86,29 +83,24 @@ namespace Certera.Core.Helpers
             httpRequest.Headers.Add("Accept", accept);
 
             //A memory stream which is a temporary buffer that holds the payload of the request
-            using (var memoryStream = new MemoryStream())
-            {
-                //Write to the memory stream
-                memoryStream.Write(data, 0, data.Length);
+            using var memoryStream = new MemoryStream();
+            //Write to the memory stream
+            memoryStream.Write(data, 0, data.Length);
 
-                //A stream content that represent the actual request stream
-                using (var stream = new StreamContent(memoryStream))
-                {
-                    httpRequest.Content = stream;
+            //A stream content that represent the actual request stream
+            httpRequest.Content = new StreamContent(memoryStream);
 
-                    //Send the request
-                    var response = await httpClient.SendAsync(httpRequest);
+            //Send the request
+            var response = await httpClient.SendAsync(httpRequest);
 
-                    //you can access the response like that
-                    //response.Content
+            //you can access the response like that
+            //response.Content
 
-                    Debug.WriteLine(string.Format("HttpStatusCode : {0}", response.StatusCode.ToString()));
-                    return ToByteArray(await response.Content.ReadAsStreamAsync());
-                }
-            }
+            Debug.WriteLine(string.Format("HttpStatusCode : {0}", response.StatusCode.ToString()));
+            return ToByteArray(await response.Content.ReadAsStreamAsync());
         }
 
-        private List<string>? GetAuthorityInformationAccessOcspUrl(X509Certificate cert)
+        private List<string> GetAuthorityInformationAccessOcspUrl(X509Certificate cert)
         {
             var ocspUrls = new List<string>(1);
 
@@ -196,7 +188,7 @@ namespace Certera.Core.Helpers
             return cStatusEnum;
         }
 
-        private static byte[]? CreateOcspPackage(X509Certificate cert, X509Certificate cacert)
+        private static byte[] CreateOcspPackage(X509Certificate cert, X509Certificate cacert)
         {
             var gen = new OcspReqGenerator();
             try
@@ -243,7 +235,7 @@ namespace Certera.Core.Helpers
             var chain = new X509Chain();
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.Build(cert);
-            X509Certificate2? issuer = null;
+            X509Certificate2 issuer = null;
 
             if (chain.ChainElements.Count > 1)
             {
@@ -254,7 +246,7 @@ namespace Certera.Core.Helpers
             return issuer;
         }
 
-        private static Asn1Object? GetExtensionValue(X509Certificate cert, string oid)
+        private static Asn1Object GetExtensionValue(X509Certificate cert, string oid)
         {
             if (cert == null)
             {

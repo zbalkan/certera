@@ -4,7 +4,15 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <StartupObject>Certera.Web.Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Certera.db" />
+    <None Remove="Certera.db-shm" />
+    <None Remove="Certera.db-wal" />
+  </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="BuildBundlerMinifier" Version="3.2.449" />
@@ -35,6 +43,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Certera.Core\Certera.Core.csproj" />
       <ProjectReference Include="..\Certera.Data\Certera.Data.csproj" />
+      <ProjectReference Include="..\Certera.Integrations\Certera.Integrations.csproj" />
     </ItemGroup>
 
   <ItemGroup>

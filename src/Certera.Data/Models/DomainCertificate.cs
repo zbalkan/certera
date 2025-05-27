@@ -47,7 +47,7 @@ namespace Certera.Data.Models
 
         public CertificateSource CertificateSource { get; set; }
 
-        public X509Certificate2? Certificate {
+        public X509Certificate2 Certificate {
             get {
                 if (RawData == null)
                 {

@@ -10,7 +10,7 @@ namespace Certera.Core.Extensions
         public static IEnumerable<IEnumerable<TSource>> Batch<TSource>(
                   this IEnumerable<TSource> source, int size)
         {
-            TSource[]? bucket = null;
+            TSource[] bucket = null;
             var count = 0;
 
             foreach (var item in source)

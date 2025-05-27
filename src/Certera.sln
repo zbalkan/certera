@@ -12,7 +12,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Data", "Certera.Dat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Web", "Certera.Web\Certera.Web.csproj", "{E8E3F59C-AC42-493B-A29E-22E3EB3A776C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Certera.Core", "Certera.Core\Certera.Core.csproj", "{46630179-0C4B-47D7-8650-5395DB864AC0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Certera.Core", "Certera.Core\Certera.Core.csproj", "{46630179-0C4B-47D7-8650-5395DB864AC0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Certera.Integrations", "Certera.Integrations\Certera.Integrations.csproj", "{9516F490-64A2-480C-8D99-F97D22AC9B36}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,6 +34,10 @@ Global
 		{46630179-0C4B-47D7-8650-5395DB864AC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46630179-0C4B-47D7-8650-5395DB864AC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{46630179-0C4B-47D7-8650-5395DB864AC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9516F490-64A2-480C-8D99-F97D22AC9B36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9516F490-64A2-480C-8D99-F97D22AC9B36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9516F490-64A2-480C-8D99-F97D22AC9B36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9516F490-64A2-480C-8D99-F97D22AC9B36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

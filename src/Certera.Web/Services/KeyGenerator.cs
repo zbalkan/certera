@@ -19,7 +19,7 @@ namespace Certera.Web.Services
         }
 
         public Key Generate(string name, KeyAlgorithm keyAlgorithm = KeyAlgorithm.RS256,
-            string? description = null, string? keyContents = null)
+            string description = null, string keyContents = null)
         {
             if (_dataContext.Keys.Any(x => x.Name == name))
             {

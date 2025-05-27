@@ -1,8 +1,8 @@
-﻿@using Microsoft.Extensions.Options
-@using Certera.Core.Notifications
-@inject IOptionsSnapshot<MailSenderInfo> MailSenderInfo
+﻿@using Certera.Integrations.Notification.Notifiers;
+@using Microsoft.Extensions.Options
+@inject IOptionsSnapshot<MailNotifierOptions> mailOptions
 
-@if (string.IsNullOrWhiteSpace(MailSenderInfo.Value.Host))
+@if (string.IsNullOrWhiteSpace(mailOptions.Value.Host))
 {
     <div class="row space-bottom alert">
         <span class="btn-close" onclick="this.parentElement.style.display='none';">&times;</span>

@@ -28,6 +28,7 @@ namespace Certera.Web.Pages.Setup
         private readonly IWritableOptions<HttpServer> _httpServerOptions;
         private readonly IWritableOptions<Options.Setup> _setupOptions;
         private readonly KeyGenerator _keyGenerator;
+        private readonly NotificationService _notificationService;
 
         public AcmeModel(ILogger<IndexModel> logger,
             DataContext dataContext,
@@ -35,7 +36,8 @@ namespace Certera.Web.Pages.Setup
             UserManager<ApplicationUser> userManager,
             IWritableOptions<HttpServer> httpServerOptions,
             IWritableOptions<Options.Setup> setupOptions,
-            KeyGenerator keyGenerator)
+            KeyGenerator keyGenerator,
+            NotificationService notificationService)
         {
             _logger = logger;
             _dataContext = dataContext;
@@ -44,6 +46,7 @@ namespace Certera.Web.Pages.Setup
             _httpServerOptions = httpServerOptions;
             _setupOptions = setupOptions;
             _keyGenerator = keyGenerator;
+            _notificationService = notificationService;
         }
 
         [BindProperty]
@@ -103,7 +106,7 @@ namespace Certera.Web.Pages.Setup
         {
             // Setup.AcmeContactEmail explicitly specified. Check for existing account, create new
             // if not exists, use key if one specified or create and store new key.
-            AcmeAccount? acmeAccount = null;
+            AcmeAccount acmeAccount = null;
 
             if (!string.IsNullOrWhiteSpace(Setup.AcmeContactEmail))
             {
@@ -130,6 +133,7 @@ namespace Certera.Web.Pages.Setup
                     IsAcmeStaging = staging
                 };
                 _dataContext.AcmeAccounts.Add(acmeAccount);
+
                 await _dataContext.SaveChangesAsync();
             }
             return acmeAccount;

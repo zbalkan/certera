@@ -32,7 +32,7 @@ namespace Certera.Web.Pages.Tracking
                 sort = sort.ToLower();
             }
 
-            Expression<Func<TrackedCertificate, object>>? sortExpression = null;
+            Expression<Func<TrackedCertificate, object>> sortExpression = null;
             Expression<Func<TrackedCertificate, object>> sortThenByExpression = x => x.Subject;
 
             switch (sort)

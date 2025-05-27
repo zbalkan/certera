@@ -20,7 +20,7 @@ namespace Certera.Web.Pages.Tracking
         [TempData]
         public string StatusMessage { get; set; }
 
-        public async Task<IActionResult> OnGet(long? id = null, string? returnUrl = null)
+        public async Task<IActionResult> OnGet(long? id = null, string returnUrl = null)
         {
             if (id != null)
             {

@@ -44,7 +44,7 @@ namespace Certera.Data.Models
 
         private IKey _ikey;
 
-        public IKey? IKey {
+        public IKey IKey {
             get {
                 if (string.IsNullOrWhiteSpace(RawData))
                 {
@@ -55,7 +55,7 @@ namespace Certera.Data.Models
             }
         }
 
-        public string? Algorithm {
+        public string Algorithm {
             get {
                 if (string.IsNullOrWhiteSpace(RawData) || IKey == null)
                 {

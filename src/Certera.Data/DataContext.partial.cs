@@ -192,7 +192,7 @@ namespace Certera.Data
             return certs;
         }
 
-        public AcmeCertificate? GetAcmeCertificate(string host, bool? staging = null)
+        public AcmeCertificate GetAcmeCertificate(string host, bool? staging = null)
         {
             var query = AcmeCertQuery();
 
@@ -245,7 +245,7 @@ namespace Certera.Data
             return domain;
         }
 
-        public IList<Domain> GetDomains(long[]? ids = null)
+        public IList<Domain> GetDomains(long[] ids = null)
         {
             var domainQuery = Domains.AsQueryable();
             if (ids != null)
@@ -349,13 +349,13 @@ namespace Certera.Data
                 .ToList();
 
             return domainsWithScans
-                .Select(x => x.LatestDomainScan.FirstOrDefault()?.DomainCertificate)
-                .ToList();
+                .ConvertAll(x => x.LatestDomainScan.FirstOrDefault()?.DomainCertificate)
+;
         }
 
         #endregion Domains
 
-        public T? GetSetting<T>(Settings setting, T @default)
+        public T GetSetting<T>(Settings setting, T @default)
         {
             var settingRecord = Settings.FirstOrDefault(x => x.Name == setting.ToString());
 
@@ -404,11 +404,11 @@ namespace Certera.Data
         {
             var settings = Settings.ToDictionary(x => x.Name, x => x.Value);
 
-            settings.TryGetValue(Data.Settings.Dns01SetEnvironmentVariables.ToString(), out var envVars);
-            settings.TryGetValue(Data.Settings.Dns01SetScript.ToString(), out var setScript);
-            settings.TryGetValue(Data.Settings.Dns01CleanupScript.ToString(), out var cleanupScript);
-            settings.TryGetValue(Data.Settings.Dns01SetScriptArguments.ToString(), out var setScriptArgs);
-            settings.TryGetValue(Data.Settings.Dns01CleanupScriptArguments.ToString(), out var cleanupScriptArgs);
+            settings.TryGetValue(nameof(Data.Settings.Dns01SetEnvironmentVariables), out var envVars);
+            settings.TryGetValue(nameof(Data.Settings.Dns01SetScript), out var setScript);
+            settings.TryGetValue(nameof(Data.Settings.Dns01CleanupScript), out var cleanupScript);
+            settings.TryGetValue(nameof(Data.Settings.Dns01SetScriptArguments), out var setScriptArgs);
+            settings.TryGetValue(nameof(Data.Settings.Dns01CleanupScriptArguments), out var cleanupScriptArgs);
 
             return new DnsSettingsContainer
             {

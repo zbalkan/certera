@@ -9,7 +9,7 @@ namespace Certera.Web.Services
     {
         private const int PROCESS_WAIT_MS = 60000;
 
-        public (int ExitCode, string Output) Run(string executablePath, string arguments, IDictionary<string, string>? environmentVariables = default)
+        public (int ExitCode, string Output) Run(string executablePath, string arguments, IDictionary<string, string> environmentVariables = default)
         {
             var output = new StringBuilder();
             var process = new Process()
